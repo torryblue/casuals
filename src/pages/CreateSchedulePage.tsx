@@ -1,9 +1,18 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+
+const PREDEFINED_TASKS = [
+  "Stripping",
+  "Bailing",
+  "Machine",
+  "Sticks",
+  "Grading",
+  "Ticket Based Work"
+];
 
 const CreateSchedulePage = () => {
   const navigate = useNavigate();
@@ -12,11 +21,17 @@ const CreateSchedulePage = () => {
     new Date().toISOString().split("T")[0]
   );
   const [scheduleItems, setScheduleItems] = useState([
-    { location: "", task: "", workers: 0 }
+    { task: PREDEFINED_TASKS[0], workers: 0 }
   ]);
 
+  // Auto-set the current date when component mounts
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+    setScheduleDate(today);
+  }, []);
+
   const handleAddItem = () => {
-    setScheduleItems([...scheduleItems, { location: "", task: "", workers: 0 }]);
+    setScheduleItems([...scheduleItems, { task: PREDEFINED_TASKS[0], workers: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -84,7 +99,7 @@ const CreateSchedulePage = () => {
                   <button
                     type="button"
                     onClick={handleAddItem}
-                    className="flex items-center text-sm text-hafta-accent hover:text-hafta-accent/80"
+                    className="flex items-center text-sm text-torryblue-accent hover:text-torryblue-accent/80"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Add Item
@@ -107,33 +122,23 @@ const CreateSchedulePage = () => {
                         )}
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <label className="block text-xs font-medium text-gray-600">
-                            Location
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            className="input-field w-full"
-                            placeholder="Enter location"
-                            value={item.location}
-                            onChange={(e) => handleItemChange(index, "location", e.target.value)}
-                          />
-                        </div>
-                        
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <label className="block text-xs font-medium text-gray-600">
                             Task
                           </label>
-                          <input
-                            type="text"
+                          <select
                             required
                             className="input-field w-full"
-                            placeholder="Enter task"
                             value={item.task}
                             onChange={(e) => handleItemChange(index, "task", e.target.value)}
-                          />
+                          >
+                            {PREDEFINED_TASKS.map((task) => (
+                              <option key={task} value={task}>
+                                {task}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         
                         <div className="space-y-2">
