@@ -85,10 +85,10 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <div className="flex h-screen w-full overflow-hidden">
       {/* Sidebar */}
-      <div className="w-[220px] bg-hafta-dark text-white flex flex-col">
+      <div className="w-[220px] bg-torryblue-dark text-white flex flex-col">
         {/* Logo */}
         <div className="px-6 py-4 border-b border-gray-800">
-          <h1 className="text-2xl font-light">Hafta</h1>
+          <h1 className="text-2xl font-light">TorryBlue Tobacco</h1>
         </div>
 
         {/* Navigation */}

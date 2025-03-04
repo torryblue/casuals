@@ -33,7 +33,7 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 page-transition">
       <div className="glass-card w-full max-w-md p-8 space-y-8 element-transition">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-light text-gray-800">Hafta</h1>
+          <h1 className="text-3xl font-light text-gray-800">TorryBlue Tobacco</h1>
           <div className="space-y-1">
             <p className="text-gray-600">Welcome back.</p>
             <p className="text-gray-500 text-sm">Please login to continue</p>
@@ -112,16 +112,16 @@ const LoginPage = () => {
           <div className="text-center text-sm text-gray-500">
             <p>
               <span className="mr-1">Hint: Use</span>
-              <code className="px-1 py-0.5 bg-gray-100 rounded text-hafta-accent">admin/admin123</code>
+              <code className="px-1 py-0.5 bg-gray-100 rounded text-torryblue-accent">admin/admin123</code>
               <span className="mx-1">or</span>
-              <code className="px-1 py-0.5 bg-gray-100 rounded text-hafta-accent">user/user123</code>
+              <code className="px-1 py-0.5 bg-gray-100 rounded text-torryblue-accent">user/user123</code>
             </p>
           </div>
         </form>
 
         <div className="text-center text-xs text-gray-400 mt-8">
           <p>Software for TorryBlue Tobacco.</p>
-          <a href="#" className="text-hafta-accent hover:underline">Contact</a> for a license.
+          <a href="#" className="text-torryblue-accent hover:underline">Contact</a> for a license.
         </div>
       </div>
     </div>

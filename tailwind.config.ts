@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				hafta: {
+				torryblue: {
 					dark: '#121212',
 					light: '#f8f9fa',
 					accent: '#2c6ecb',

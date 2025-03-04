@@ -102,15 +102,15 @@
   }
   
   .input-field {
-    @apply px-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-hafta-accent/30 focus:border-hafta-accent transition-all duration-200;
+    @apply px-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-torryblue-accent/30 focus:border-torryblue-accent transition-all duration-200;
   }
   
   .btn-primary {
-    @apply px-4 py-2 bg-hafta-accent text-white rounded-md hover:bg-hafta-accent/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-hafta-accent/50;
+    @apply px-4 py-2 bg-torryblue-accent text-white rounded-md hover:bg-torryblue-accent/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-torryblue-accent/50;
   }
   
   .btn-secondary {
-    @apply px-4 py-2 bg-white text-hafta-accent border border-hafta-accent rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-hafta-accent/30;
+    @apply px-4 py-2 bg-white text-torryblue-accent border border-torryblue-accent rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-torryblue-accent/30;
   }
   
   .page-transition {
