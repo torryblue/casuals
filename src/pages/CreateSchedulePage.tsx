@@ -1,0 +1,191 @@
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { AppLayout } from "@/components/AppLayout";
+import { ArrowLeft, Save, X, Plus } from "lucide-react";
+import { toast } from "sonner";
+
+const CreateSchedulePage = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [scheduleItems, setScheduleItems] = useState([
+    { location: "", task: "", workers: 0 }
+  ]);
+
+  const handleAddItem = () => {
+    setScheduleItems([...scheduleItems, { location: "", task: "", workers: 0 }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const newItems = [...scheduleItems];
+    newItems.splice(index, 1);
+    setScheduleItems(newItems);
+  };
+
+  const handleItemChange = (
+    index: number,
+    field: string,
+    value: string | number
+  ) => {
+    const newItems = [...scheduleItems];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setScheduleItems(newItems);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      toast.success("Schedule created successfully");
+      setIsLoading(false);
+      navigate('/');
+    }, 1000);
+  };
+
+  return (
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-500" />
+          </button>
+          <h1 className="text-2xl font-medium text-gray-800">Create Today's Schedule</h1>
+        </div>
+
+        <div className="glass-card p-6 element-transition">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-700">
+                  Schedule Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="scheduleDate"
+                  name="scheduleDate"
+                  type="date"
+                  required
+                  className="input-field w-full md:w-64"
+                  value={scheduleDate}
+                  onChange={(e) => setScheduleDate(e.target.value)}
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-md font-medium text-gray-700">Schedule Items</h3>
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="flex items-center text-sm text-hafta-accent hover:text-hafta-accent/80"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Add Item
+                  </button>
+                </div>
+                
+                <div className="space-y-4">
+                  {scheduleItems.map((item, index) => (
+                    <div key={index} className="glass-card p-4 rounded-md">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="text-sm font-medium text-gray-500">Item {index + 1}</h4>
+                        {scheduleItems.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(index)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="block text-xs font-medium text-gray-600">
+                            Location
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="input-field w-full"
+                            placeholder="Enter location"
+                            value={item.location}
+                            onChange={(e) => handleItemChange(index, "location", e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="block text-xs font-medium text-gray-600">
+                            Task
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="input-field w-full"
+                            placeholder="Enter task"
+                            value={item.task}
+                            onChange={(e) => handleItemChange(index, "task", e.target.value)}
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <label className="block text-xs font-medium text-gray-600">
+                            Workers Needed
+                          </label>
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            className="input-field w-full"
+                            placeholder="Number of workers"
+                            value={item.workers}
+                            onChange={(e) => handleItemChange(index, "workers", parseInt(e.target.value) || 0)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t flex justify-end">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={`btn-primary flex items-center ${
+                  isLoading ? "opacity-70 cursor-not-allowed" : ""
+                }`}
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Schedule
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </AppLayout>
+  );
+};
+
+export default CreateSchedulePage;

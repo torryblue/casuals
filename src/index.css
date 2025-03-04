@@ -1,10 +1,11 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -35,19 +36,12 @@
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -79,6 +73,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -97,5 +92,32 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-sm border border-gray-200 shadow-sm rounded-lg;
+  }
+  
+  .input-field {
+    @apply px-4 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-hafta-accent/30 focus:border-hafta-accent transition-all duration-200;
+  }
+  
+  .btn-primary {
+    @apply px-4 py-2 bg-hafta-accent text-white rounded-md hover:bg-hafta-accent/90 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-hafta-accent/50;
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2 bg-white text-hafta-accent border border-hafta-accent rounded-md hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-hafta-accent/30;
+  }
+  
+  .page-transition {
+    @apply animate-fadeIn;
+  }
+  
+  .element-transition {
+    @apply animate-slideIn;
   }
 }
