@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useEmployees } from "@/contexts/EmployeeContext";
 
 const PREDEFINED_TASKS = [
   "Stripping",
@@ -16,12 +17,13 @@ const PREDEFINED_TASKS = [
 
 const CreateSchedulePage = () => {
   const navigate = useNavigate();
+  const { employees } = useEmployees();
   const [isLoading, setIsLoading] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [scheduleItems, setScheduleItems] = useState([
-    { task: PREDEFINED_TASKS[0], workers: 0 }
+    { task: PREDEFINED_TASKS[0], workers: 0, employeeIds: [] }
   ]);
 
   // Auto-set the current date when component mounts
@@ -31,7 +33,7 @@ const CreateSchedulePage = () => {
   }, []);
 
   const handleAddItem = () => {
-    setScheduleItems([...scheduleItems, { task: PREDEFINED_TASKS[0], workers: 0 }]);
+    setScheduleItems([...scheduleItems, { task: PREDEFINED_TASKS[0], workers: 0, employeeIds: [] }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -43,10 +45,24 @@ const CreateSchedulePage = () => {
   const handleItemChange = (
     index: number,
     field: string,
-    value: string | number
+    value: string | number | string[]
   ) => {
     const newItems = [...scheduleItems];
     newItems[index] = { ...newItems[index], [field]: value };
+    setScheduleItems(newItems);
+  };
+
+  const handleEmployeeSelection = (index: number, employeeId: string, isSelected: boolean) => {
+    const newItems = [...scheduleItems];
+    let currentEmployees = [...(newItems[index].employeeIds as string[])];
+    
+    if (isSelected) {
+      currentEmployees.push(employeeId);
+    } else {
+      currentEmployees = currentEmployees.filter(id => id !== employeeId);
+    }
+    
+    newItems[index] = { ...newItems[index], employeeIds: currentEmployees };
     setScheduleItems(newItems);
   };
 
@@ -154,6 +170,39 @@ const CreateSchedulePage = () => {
                             value={item.workers}
                             onChange={(e) => handleItemChange(index, "workers", parseInt(e.target.value) || 0)}
                           />
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 space-y-2">
+                        <label className="block text-xs font-medium text-gray-600">
+                          Assign Employees
+                        </label>
+                        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
+                          {employees.length > 0 ? (
+                            <div className="space-y-2">
+                              {employees.map((employee) => (
+                                <div key={employee.id} className="flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    id={`employee-${index}-${employee.id}`}
+                                    checked={(item.employeeIds as string[]).includes(employee.id)}
+                                    onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
+                                    className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
+                                  />
+                                  <label
+                                    htmlFor={`employee-${index}-${employee.id}`}
+                                    className="ml-2 block text-sm text-gray-700"
+                                  >
+                                    {employee.name} {employee.surname} ({employee.id})
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-gray-500 py-2 text-center">
+                              No employees available. Add employees first.
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
