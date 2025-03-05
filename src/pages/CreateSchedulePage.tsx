@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
@@ -5,6 +6,7 @@ import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
+import StrippingScheduleForm from "@/components/StrippingScheduleForm";
 
 const PREDEFINED_TASKS = [
   "Stripping",
@@ -24,7 +26,13 @@ const CreateSchedulePage = () => {
     new Date().toISOString().split("T")[0]
   );
   const [scheduleItems, setScheduleItems] = useState([
-    { task: PREDEFINED_TASKS[0], workers: 0, employeeIds: [] }
+    { 
+      task: PREDEFINED_TASKS[0], 
+      workers: 0, 
+      employeeIds: [],
+      targetMass: 0,
+      numberOfScales: 1
+    }
   ]);
 
   // Auto-set the current date when component mounts
@@ -34,7 +42,13 @@ const CreateSchedulePage = () => {
   }, []);
 
   const handleAddItem = () => {
-    setScheduleItems([...scheduleItems, { task: PREDEFINED_TASKS[0], workers: 0, employeeIds: [] }]);
+    setScheduleItems([...scheduleItems, { 
+      task: PREDEFINED_TASKS[0], 
+      workers: 0, 
+      employeeIds: [],
+      targetMass: 0,
+      numberOfScales: 1
+    }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -64,6 +78,18 @@ const CreateSchedulePage = () => {
     }
     
     newItems[index] = { ...newItems[index], employeeIds: currentEmployees };
+    setScheduleItems(newItems);
+  };
+
+  const handleStrippingDataChange = (index: number, data: { employeeIds: string[], targetMass: number, numberOfScales: number }) => {
+    const newItems = [...scheduleItems];
+    newItems[index] = { 
+      ...newItems[index], 
+      employeeIds: data.employeeIds,
+      workers: data.employeeIds.length,
+      targetMass: data.targetMass,
+      numberOfScales: data.numberOfScales
+    };
     setScheduleItems(newItems);
   };
 
@@ -160,54 +186,66 @@ const CreateSchedulePage = () => {
                           </select>
                         </div>
                         
-                        <div className="space-y-2">
-                          <label className="block text-xs font-medium text-gray-600">
-                            Workers Needed
-                          </label>
-                          <input
-                            type="number"
-                            required
-                            min="1"
-                            className="input-field w-full"
-                            placeholder="Number of workers"
-                            value={item.workers}
-                            onChange={(e) => handleItemChange(index, "workers", parseInt(e.target.value) || 0)}
-                          />
-                        </div>
+                        {item.task !== "Stripping" && (
+                          <div className="space-y-2">
+                            <label className="block text-xs font-medium text-gray-600">
+                              Workers Needed
+                            </label>
+                            <input
+                              type="number"
+                              required
+                              min="1"
+                              className="input-field w-full"
+                              placeholder="Number of workers"
+                              value={item.workers}
+                              onChange={(e) => handleItemChange(index, "workers", parseInt(e.target.value) || 0)}
+                            />
+                          </div>
+                        )}
                       </div>
                       
-                      <div className="mt-4 space-y-2">
-                        <label className="block text-xs font-medium text-gray-600">
-                          Assign Employees
-                        </label>
-                        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
-                          {employees.length > 0 ? (
-                            <div className="space-y-2">
-                              {employees.map((employee) => (
-                                <div key={employee.id} className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    id={`employee-${index}-${employee.id}`}
-                                    checked={(item.employeeIds as string[]).includes(employee.id)}
-                                    onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
-                                    className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
-                                  />
-                                  <label
-                                    htmlFor={`employee-${index}-${employee.id}`}
-                                    className="ml-2 block text-sm text-gray-700"
-                                  >
-                                    {employee.name} {employee.surname} ({employee.id})
-                                  </label>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-500 py-2 text-center">
-                              No employees available. Add employees first.
-                            </p>
-                          )}
+                      {/* Show different forms based on task type */}
+                      {item.task === "Stripping" ? (
+                        <div className="mt-4">
+                          <StrippingScheduleForm 
+                            employeeIds={item.employeeIds}
+                            onChange={(data) => handleStrippingDataChange(index, data)}
+                          />
                         </div>
-                      </div>
+                      ) : (
+                        <div className="mt-4 space-y-2">
+                          <label className="block text-xs font-medium text-gray-600">
+                            Assign Employees
+                          </label>
+                          <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
+                            {employees.length > 0 ? (
+                              <div className="space-y-2">
+                                {employees.map((employee) => (
+                                  <div key={employee.id} className="flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      id={`employee-${index}-${employee.id}`}
+                                      checked={(item.employeeIds as string[]).includes(employee.id)}
+                                      onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
+                                      className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
+                                    />
+                                    <label
+                                      htmlFor={`employee-${index}-${employee.id}`}
+                                      className="ml-2 block text-sm text-gray-700"
+                                    >
+                                      {employee.name} {employee.surname} ({employee.id})
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-gray-500 py-2 text-center">
+                                No employees available. Add employees first.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

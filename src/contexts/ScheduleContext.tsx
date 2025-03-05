@@ -8,6 +8,9 @@ export type ScheduleItem = {
   task: string;
   workers: number;
   employeeIds: string[];
+  // Additional fields for Stripping task
+  targetMass?: number;
+  numberOfScales?: number;
 };
 
 export type Schedule = {
@@ -25,6 +28,12 @@ export type WorkEntry = {
   quantity: number;
   remarks: string;
   recordedAt: Date;
+  // Fields for Stripping task
+  scaleEntries?: {
+    scaleNumber: number;
+    inValue: number;
+    outValue?: number;
+  }[];
 };
 
 type ScheduleContextType = {
