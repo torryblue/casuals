@@ -21,7 +21,7 @@ const DashboardPage = () => {
           <h1 className="text-2xl font-medium text-gray-800">Dashboard</h1>
         </div>
 
-        {/* New Dashboard tiles */}
+        {/* Dashboard tiles */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Create Schedule tile */}
           <div 
@@ -52,6 +52,7 @@ const DashboardPage = () => {
           <div 
             className="glass-card p-6 element-transition cursor-pointer hover:shadow-md transition-all"
             style={{ animationDelay: '0.1s' }}
+            onClick={() => navigate('/work-entry')}
           >
             <div className="flex items-center mb-4">
               <FileText className="h-6 w-6 text-torryblue-accent mr-3" />
@@ -61,7 +62,13 @@ const DashboardPage = () => {
               Record and track employee work entries and attendance
             </p>
             <div className="mt-2 flex justify-end">
-              <button className="btn-primary">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/work-entry');
+                }}
+                className="btn-primary"
+              >
                 Record Work
               </button>
             </div>

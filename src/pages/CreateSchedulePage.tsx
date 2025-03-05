@@ -1,14 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useSchedules } from "@/contexts/ScheduleContext";
 
 const PREDEFINED_TASKS = [
   "Stripping",
-  "Bailing",
+  "Bailing", 
   "Machine",
   "Sticks",
   "Grading",
@@ -18,6 +18,7 @@ const PREDEFINED_TASKS = [
 const CreateSchedulePage = () => {
   const navigate = useNavigate();
   const { employees } = useEmployees();
+  const { addSchedule, isLoading: isScheduleLoading } = useSchedules();
   const [isLoading, setIsLoading] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -70,12 +71,14 @@ const CreateSchedulePage = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
+    // Save schedule using context
+    addSchedule(scheduleDate, scheduleItems);
+    
+    // Navigate after delay to give time for the toast
     setTimeout(() => {
-      toast.success("Schedule created successfully");
       setIsLoading(false);
       navigate('/');
-    }, 1000);
+    }, 1200);
   };
 
   return (
