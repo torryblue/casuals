@@ -21,6 +21,10 @@ import NotFound from "./pages/NotFound";
 import MasterEmployeeList from "./pages/master/MasterEmployeeList";
 import MasterScheduleList from "./pages/master/MasterScheduleList";
 import MasterReports from "./pages/master/MasterReports";
+import EditEmployeePage from "./pages/master/EditEmployeePage";
+import ViewEmployeePage from "./pages/master/ViewEmployeePage";
+import EditSchedulePage from "./pages/master/EditSchedulePage";
+import ViewSchedulePage from "./pages/master/ViewSchedulePage";
 
 const queryClient = new QueryClient();
 
@@ -44,7 +48,11 @@ const App = () => (
                 
                 {/* Master List Routes - Admin Only */}
                 <Route path="/master/employees" element={<ProtectedRoute><MasterEmployeeList /></ProtectedRoute>} />
+                <Route path="/master/employees/edit/:id" element={<ProtectedRoute><EditEmployeePage /></ProtectedRoute>} />
+                <Route path="/master/employees/view/:id" element={<ProtectedRoute><ViewEmployeePage /></ProtectedRoute>} />
                 <Route path="/master/schedules" element={<ProtectedRoute><MasterScheduleList /></ProtectedRoute>} />
+                <Route path="/master/schedules/edit/:id" element={<ProtectedRoute><EditSchedulePage /></ProtectedRoute>} />
+                <Route path="/master/schedules/view/:id" element={<ProtectedRoute><ViewSchedulePage /></ProtectedRoute>} />
                 <Route path="/master/reports" element={<ProtectedRoute><MasterReports /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { Search, Edit, Trash, ArrowLeft } from "lucide-react";
+import { Search, Edit, Trash, ArrowLeft, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -102,8 +102,16 @@ const MasterEmployeeList = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <div className="flex space-x-2">
                           <button 
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                            onClick={() => navigate(`/master/employees/view/${employee.id}`)}
+                            title="View Employee"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button 
                             className="p-1 text-blue-500 hover:text-blue-700"
-                            onClick={() => toast.info("Edit functionality to be implemented")}
+                            onClick={() => navigate(`/master/employees/edit/${employee.id}`)}
+                            title="Edit Employee"
                           >
                             <Edit size={16} />
                           </button>
@@ -111,6 +119,7 @@ const MasterEmployeeList = () => {
                             className="p-1 text-red-500 hover:text-red-700"
                             onClick={() => handleDeleteEmployee(employee.id)}
                             disabled={isDeleting}
+                            title="Delete Employee"
                           >
                             <Trash size={16} />
                           </button>

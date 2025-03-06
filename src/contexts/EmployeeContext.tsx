@@ -12,13 +12,13 @@ export type Employee = {
   gender: string;
   nextOfKinName: string;
   nextOfKinContact: string;
-  createdAt: Date;
 };
 
 type EmployeeContextType = {
   employees: Employee[];
-  addEmployee: (employee: Omit<Employee, 'id' | 'createdAt'>) => void;
-  removeEmployee: (id: string) => void; // Add the missing removeEmployee function
+  addEmployee: (employee: Omit<Employee, 'id'>) => void;
+  updateEmployee: (id: string, updatedData: Omit<Employee, 'id'>) => void;
+  removeEmployee: (id: string) => void;
   isLoading: boolean;
 };
 
@@ -28,48 +28,59 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Generate a unique worker ID with prefix WRK
-  const generateWorkerId = () => {
-    const timestamp = new Date().getTime().toString().slice(-6);
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `WRK-${timestamp}-${random}`;
+  const generateId = () => {
+    return `EMP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
   };
 
-  const addEmployee = (employeeData: Omit<Employee, 'id' | 'createdAt'>) => {
+  const addEmployee = (employee: Omit<Employee, 'id'>) => {
     setIsLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       const newEmployee = {
-        ...employeeData,
-        id: generateWorkerId(),
-        createdAt: new Date()
+        ...employee,
+        id: generateId()
       };
       
       setEmployees(prev => [...prev, newEmployee]);
       setIsLoading(false);
-      toast.success(`Employee ${employeeData.name} ${employeeData.surname} created successfully`);
+      toast.success("Employee created successfully");
     }, 1000);
   };
 
-  // Implement the removeEmployee function
+  const updateEmployee = (id: string, updatedData: Omit<Employee, 'id'>) => {
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      setEmployees(prev => 
+        prev.map(employee => 
+          employee.id === id 
+            ? { ...updatedData, id } 
+            : employee
+        )
+      );
+      
+      setIsLoading(false);
+      toast.success("Employee updated successfully");
+    }, 1000);
+  };
+
   const removeEmployee = (id: string) => {
     setIsLoading(true);
     
-    // Simulate API call for deletion
     setTimeout(() => {
       setEmployees(prev => prev.filter(employee => employee.id !== id));
       setIsLoading(false);
       toast.success("Employee removed successfully");
-    }, 800);
+    }, 1000);
   };
 
   return (
-    <EmployeeContext.Provider value={{
-      employees,
-      addEmployee,
+    <EmployeeContext.Provider value={{ 
+      employees, 
+      addEmployee, 
+      updateEmployee,
       removeEmployee,
-      isLoading
+      isLoading 
     }}>
       {children}
     </EmployeeContext.Provider>

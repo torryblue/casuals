@@ -103,15 +103,15 @@ const MasterScheduleList = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <div className="flex space-x-2">
                           <button 
-                            className="p-1 text-blue-500 hover:text-blue-700"
-                            onClick={() => navigate(`/work-entry?scheduleId=${schedule.id}`)}
-                            title="View Work Entries"
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                            onClick={() => navigate(`/master/schedules/view/${schedule.id}`)}
+                            title="View Schedule"
                           >
                             <Eye size={16} />
                           </button>
                           <button 
-                            className="p-1 text-green-500 hover:text-green-700"
-                            onClick={() => toast.info("Edit functionality to be implemented")}
+                            className="p-1 text-blue-500 hover:text-blue-700"
+                            onClick={() => navigate(`/master/schedules/edit/${schedule.id}`)}
                             title="Edit Schedule"
                           >
                             <Edit size={16} />
