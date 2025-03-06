@@ -51,7 +51,8 @@ const MachineScheduleForm = ({
 
   // Handle target mass change
   const handleTargetMassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value) || 0;
+    // Ensure whole number
+    const value = Math.round(parseFloat(e.target.value) || 0);
     setMachineTargetMass(value);
   };
 
@@ -64,7 +65,7 @@ const MachineScheduleForm = ({
         <input
           type="number"
           min="0"
-          step="0.1"
+          step="1" // Changed from 0.1 to 1 for whole numbers
           className="input-field w-full"
           value={machineTargetMass}
           onChange={handleTargetMassChange}

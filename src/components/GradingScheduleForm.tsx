@@ -1,22 +1,34 @@
 
 import React, { useState, useEffect } from "react";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { X } from "lucide-react";
+import { X, Plus } from "lucide-react";
 
-type StrippingScheduleFormProps = {
+type GradingScheduleFormProps = {
   employeeIds: string[];
   onChange: (data: {
     employeeIds: string[];
-    targetMass: number;
-    numberOfScales: number;
+    numberOfBales: number;
+    classGrades: string[];
   }) => void;
 };
 
-const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormProps) => {
+const GradingScheduleForm = ({ 
+  employeeIds = [], 
+  onChange 
+}: GradingScheduleFormProps) => {
   const { employees } = useEmployees();
-  const [targetMass, setTargetMass] = useState<number>(0);
-  const [numberOfScales, setNumberOfScales] = useState<number>(1);
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds || []);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds);
+  const [numberOfBales, setNumberOfBales] = useState<number>(0);
+  const [classGrades, setClassGrades] = useState<string[]>(['']);
+
+  // Update parent component when values change
+  useEffect(() => {
+    onChange({
+      employeeIds: selectedEmployeeIds,
+      numberOfBales,
+      classGrades: classGrades.filter(grade => grade.trim() !== '') // Only include non-empty grades
+    });
+  }, [selectedEmployeeIds, numberOfBales, classGrades, onChange]);
 
   // Helper to find employee by ID
   const findEmployee = (id: string) => {
@@ -34,71 +46,87 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
     }
     
     setSelectedEmployeeIds(updatedIds);
-    
-    // Notify parent component of the change
-    onChange({
-      employeeIds: updatedIds,
-      targetMass,
-      numberOfScales
-    });
   };
 
-  // Handle target mass change
-  const handleTargetMassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Ensure whole number
-    const value = Math.round(parseFloat(e.target.value) || 0);
-    setTargetMass(value);
-    
-    onChange({
-      employeeIds: selectedEmployeeIds,
-      targetMass: value,
-      numberOfScales
-    });
+  // Handle number of bales change
+  const handleNumberOfBalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.round(parseInt(e.target.value) || 0);
+    setNumberOfBales(value);
   };
 
-  // Handle number of scales change
-  const handleNumberOfScalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Ensure whole number
-    const value = Math.round(parseInt(e.target.value) || 1);
-    setNumberOfScales(value);
-    
-    onChange({
-      employeeIds: selectedEmployeeIds,
-      targetMass,
-      numberOfScales: value
-    });
+  // Handle class grade changes
+  const handleClassGradeChange = (index: number, value: string) => {
+    const updatedGrades = [...classGrades];
+    updatedGrades[index] = value;
+    setClassGrades(updatedGrades);
+  };
+
+  // Add another class grade field
+  const handleAddClassGrade = () => {
+    setClassGrades([...classGrades, '']);
+  };
+
+  // Remove a class grade field
+  const handleRemoveClassGrade = (index: number) => {
+    if (classGrades.length > 1) {
+      const updatedGrades = [...classGrades];
+      updatedGrades.splice(index, 1);
+      setClassGrades(updatedGrades);
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="block text-xs font-medium text-gray-600">
-          Target Mass (kg)
+          Number of Bales
         </label>
         <input
           type="number"
           min="0"
-          step="1" // Changed from 0.1 to 1 for whole numbers
+          step="1"
           className="input-field w-full"
-          value={targetMass}
-          onChange={handleTargetMassChange}
-          placeholder="Enter target mass in kg"
+          value={numberOfBales}
+          onChange={handleNumberOfBalesChange}
+          placeholder="Enter number of bales"
         />
       </div>
       
       <div className="space-y-2">
-        <label className="block text-xs font-medium text-gray-600">
-          Number of Scales
-        </label>
-        <input
-          type="number"
-          min="1"
-          step="1"
-          className="input-field w-full"
-          value={numberOfScales}
-          onChange={handleNumberOfScalesChange}
-          placeholder="Enter number of scales"
-        />
+        <div className="flex items-center justify-between">
+          <label className="block text-xs font-medium text-gray-600">
+            Class Grades
+          </label>
+          <button
+            type="button"
+            onClick={handleAddClassGrade}
+            className="text-xs text-torryblue-accent flex items-center"
+          >
+            <Plus size={12} className="mr-1" />
+            Add Grade
+          </button>
+        </div>
+        
+        {classGrades.map((grade, index) => (
+          <div key={index} className="flex items-center space-x-2">
+            <input
+              type="text"
+              className="input-field w-full"
+              value={grade}
+              onChange={(e) => handleClassGradeChange(index, e.target.value)}
+              placeholder="Enter grade class (e.g. A, B, C)"
+            />
+            {classGrades.length > 1 && (
+              <button
+                type="button"
+                onClick={() => handleRemoveClassGrade(index)}
+                className="text-gray-400 hover:text-red-500"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+        ))}
       </div>
       
       <div className="space-y-2">
@@ -112,13 +140,13 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
                 <div key={employee.id} className="flex items-center">
                   <input
                     type="checkbox"
-                    id={`employee-stripping-${employee.id}`}
+                    id={`employee-grading-${employee.id}`}
                     checked={selectedEmployeeIds.includes(employee.id)}
                     onChange={(e) => handleEmployeeSelection(employee.id, e.target.checked)}
                     className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
                   />
                   <label
-                    htmlFor={`employee-stripping-${employee.id}`}
+                    htmlFor={`employee-grading-${employee.id}`}
                     className="ml-2 block text-sm text-gray-700"
                   >
                     {employee.name} {employee.surname} ({employee.id})
@@ -161,4 +189,4 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
   );
 };
 
-export default StrippingScheduleForm;
+export default GradingScheduleForm;

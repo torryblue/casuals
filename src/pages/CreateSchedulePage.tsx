@@ -2,12 +2,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
-import { ArrowLeft, Save, X, Plus } from "lucide-react";
+import { ArrowLeft, Save, X, Plus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import StrippingScheduleForm from "@/components/StrippingScheduleForm";
 import MachineScheduleForm from "@/components/MachineScheduleForm";
+import SprayingScheduleForm from "@/components/SprayingScheduleForm";
+import GradingScheduleForm from "@/components/GradingScheduleForm";
 
 const PREDEFINED_TASKS = [
   "Stripping",
@@ -15,20 +17,22 @@ const PREDEFINED_TASKS = [
   "Machine",
   "Sticks",
   "Grading",
-  "Ticket Based Work"
+  "Ticket Based Work",
+  "Spraying"
 ];
 
 const CreateSchedulePage = () => {
   const navigate = useNavigate();
   const { employees } = useEmployees();
-  const { addSchedule, isLoading: isScheduleLoading } = useSchedules();
+  const { addSchedule, isEmployeeAssignedForDate, isLoading: isScheduleLoading } = useSchedules();
   const [isLoading, setIsLoading] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [scheduleItems, setScheduleItems] = useState([
     { 
-      task: PREDEFINED_TASKS[0], 
+      task: PREDEFINED_TASKS[0],
+      dutyName: "",
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
@@ -43,7 +47,8 @@ const CreateSchedulePage = () => {
 
   const handleAddItem = () => {
     setScheduleItems([...scheduleItems, { 
-      task: PREDEFINED_TASKS[0], 
+      task: PREDEFINED_TASKS[0],
+      dutyName: "",
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
@@ -68,6 +73,12 @@ const CreateSchedulePage = () => {
   };
 
   const handleEmployeeSelection = (index: number, employeeId: string, isSelected: boolean) => {
+    // Check if employee is already assigned for this date
+    if (isSelected && isEmployeeAssignedForDate(employeeId, scheduleDate)) {
+      toast.error("This employee is already assigned to another duty for this date.");
+      return;
+    }
+
     const newItems = [...scheduleItems];
     let currentEmployees = [...(newItems[index].employeeIds as string[])];
     
@@ -81,14 +92,19 @@ const CreateSchedulePage = () => {
     setScheduleItems(newItems);
   };
 
+  // Helper for converting input values to whole numbers
+  const ensureWholeNumber = (value: number): number => {
+    return Math.round(value);
+  };
+
   const handleStrippingDataChange = (index: number, data: { employeeIds: string[], targetMass: number, numberOfScales: number }) => {
     const newItems = [...scheduleItems];
     newItems[index] = { 
       ...newItems[index], 
       employeeIds: data.employeeIds,
       workers: data.employeeIds.length,
-      targetMass: data.targetMass,
-      numberOfScales: data.numberOfScales
+      targetMass: ensureWholeNumber(data.targetMass),
+      numberOfScales: ensureWholeNumber(data.numberOfScales)
     };
     setScheduleItems(newItems);
   };
@@ -99,13 +115,57 @@ const CreateSchedulePage = () => {
       ...newItems[index], 
       employeeIds: data.employeeIds,
       workers: data.workers,
-      targetMass: data.targetMass
+      targetMass: ensureWholeNumber(data.targetMass)
     };
     setScheduleItems(newItems);
   };
 
+  const handleSprayingDataChange = (index: number, data: { employeeIds: string[], targetMass: number, numberOfBales: number }) => {
+    const newItems = [...scheduleItems];
+    newItems[index] = { 
+      ...newItems[index], 
+      employeeIds: data.employeeIds,
+      workers: data.employeeIds.length,
+      targetMass: ensureWholeNumber(data.targetMass),
+      numberOfBales: ensureWholeNumber(data.numberOfBales)
+    };
+    setScheduleItems(newItems);
+  };
+
+  const handleGradingDataChange = (index: number, data: { employeeIds: string[], numberOfBales: number, classGrades: string[] }) => {
+    const newItems = [...scheduleItems];
+    newItems[index] = { 
+      ...newItems[index], 
+      employeeIds: data.employeeIds,
+      workers: data.employeeIds.length,
+      numberOfBales: ensureWholeNumber(data.numberOfBales),
+      classGrades: data.classGrades
+    };
+    setScheduleItems(newItems);
+  };
+
+  const validateScheduleItems = () => {
+    for (const item of scheduleItems) {
+      if (!item.dutyName.trim()) {
+        toast.error("Please provide a duty name for all items");
+        return false;
+      }
+      
+      if (item.employeeIds.length === 0) {
+        toast.error(`Please assign at least one employee to the duty: ${item.dutyName}`);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateScheduleItems()) {
+      return;
+    }
+    
     setIsLoading(true);
     
     addSchedule(scheduleDate, scheduleItems);
@@ -195,7 +255,25 @@ const CreateSchedulePage = () => {
                           </select>
                         </div>
                         
-                        {item.task !== "Stripping" && item.task !== "Machine" && (
+                        <div className="space-y-2">
+                          <label className="block text-xs font-medium text-gray-600">
+                            Duty Name
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            className="input-field w-full"
+                            placeholder="Enter duty name"
+                            value={item.dutyName}
+                            onChange={(e) => handleItemChange(index, "dutyName", e.target.value)}
+                          />
+                        </div>
+
+                        {item.task !== "Stripping" && 
+                         item.task !== "Machine" && 
+                         item.task !== "Spraying" && 
+                         item.task !== "Grading" && 
+                         item.task !== "Sticks" && (
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-gray-600">
                               Workers Needed
@@ -220,12 +298,26 @@ const CreateSchedulePage = () => {
                             onChange={(data) => handleStrippingDataChange(index, data)}
                           />
                         </div>
-                      ) : item.task === "Machine" ? (
+                      ) : item.task === "Machine" || item.task === "Sticks" ? (
                         <div className="mt-4">
                           <MachineScheduleForm 
                             employeeIds={item.employeeIds}
                             targetMass={item.targetMass}
                             onChange={(data) => handleMachineDataChange(index, data)}
+                          />
+                        </div>
+                      ) : item.task === "Spraying" ? (
+                        <div className="mt-4">
+                          <SprayingScheduleForm 
+                            employeeIds={item.employeeIds}
+                            onChange={(data) => handleSprayingDataChange(index, data)}
+                          />
+                        </div>
+                      ) : item.task === "Grading" ? (
+                        <div className="mt-4">
+                          <GradingScheduleForm
+                            employeeIds={item.employeeIds}
+                            onChange={(data) => handleGradingDataChange(index, data)}
                           />
                         </div>
                       ) : (

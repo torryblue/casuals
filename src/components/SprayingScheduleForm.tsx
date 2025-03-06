@@ -3,20 +3,32 @@ import React, { useState, useEffect } from "react";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { X } from "lucide-react";
 
-type StrippingScheduleFormProps = {
+type SprayingScheduleFormProps = {
   employeeIds: string[];
   onChange: (data: {
     employeeIds: string[];
     targetMass: number;
-    numberOfScales: number;
+    numberOfBales: number;
   }) => void;
 };
 
-const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormProps) => {
+const SprayingScheduleForm = ({ 
+  employeeIds = [], 
+  onChange 
+}: SprayingScheduleFormProps) => {
   const { employees } = useEmployees();
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds);
   const [targetMass, setTargetMass] = useState<number>(0);
-  const [numberOfScales, setNumberOfScales] = useState<number>(1);
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds || []);
+  const [numberOfBales, setNumberOfBales] = useState<number>(0);
+
+  // Update parent component when values change
+  useEffect(() => {
+    onChange({
+      employeeIds: selectedEmployeeIds,
+      targetMass,
+      numberOfBales
+    });
+  }, [selectedEmployeeIds, targetMass, numberOfBales, onChange]);
 
   // Helper to find employee by ID
   const findEmployee = (id: string) => {
@@ -34,39 +46,18 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
     }
     
     setSelectedEmployeeIds(updatedIds);
-    
-    // Notify parent component of the change
-    onChange({
-      employeeIds: updatedIds,
-      targetMass,
-      numberOfScales
-    });
   };
 
   // Handle target mass change
   const handleTargetMassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Ensure whole number
     const value = Math.round(parseFloat(e.target.value) || 0);
     setTargetMass(value);
-    
-    onChange({
-      employeeIds: selectedEmployeeIds,
-      targetMass: value,
-      numberOfScales
-    });
   };
 
-  // Handle number of scales change
-  const handleNumberOfScalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Ensure whole number
-    const value = Math.round(parseInt(e.target.value) || 1);
-    setNumberOfScales(value);
-    
-    onChange({
-      employeeIds: selectedEmployeeIds,
-      targetMass,
-      numberOfScales: value
-    });
+  // Handle number of bales change
+  const handleNumberOfBalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Math.round(parseInt(e.target.value) || 0);
+    setNumberOfBales(value);
   };
 
   return (
@@ -78,7 +69,7 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
         <input
           type="number"
           min="0"
-          step="1" // Changed from 0.1 to 1 for whole numbers
+          step="1"
           className="input-field w-full"
           value={targetMass}
           onChange={handleTargetMassChange}
@@ -88,16 +79,16 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
       
       <div className="space-y-2">
         <label className="block text-xs font-medium text-gray-600">
-          Number of Scales
+          Number of Bales
         </label>
         <input
           type="number"
-          min="1"
+          min="0"
           step="1"
           className="input-field w-full"
-          value={numberOfScales}
-          onChange={handleNumberOfScalesChange}
-          placeholder="Enter number of scales"
+          value={numberOfBales}
+          onChange={handleNumberOfBalesChange}
+          placeholder="Enter number of bales"
         />
       </div>
       
@@ -112,13 +103,13 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
                 <div key={employee.id} className="flex items-center">
                   <input
                     type="checkbox"
-                    id={`employee-stripping-${employee.id}`}
+                    id={`employee-spraying-${employee.id}`}
                     checked={selectedEmployeeIds.includes(employee.id)}
                     onChange={(e) => handleEmployeeSelection(employee.id, e.target.checked)}
                     className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
                   />
                   <label
-                    htmlFor={`employee-stripping-${employee.id}`}
+                    htmlFor={`employee-spraying-${employee.id}`}
                     className="ml-2 block text-sm text-gray-700"
                   >
                     {employee.name} {employee.surname} ({employee.id})
@@ -161,4 +152,4 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
   );
 };
 
-export default StrippingScheduleForm;
+export default SprayingScheduleForm;

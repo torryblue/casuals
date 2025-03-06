@@ -37,15 +37,18 @@ const StrippingWorkEntryForm = ({
   // Find employee details
   const employee = employees.find(emp => emp.id === employeeId);
 
-  // Calculate totals
-  const totalInScale = scaleEntries.reduce((sum, entry) => sum + (entry.inValue || 0), 0);
-  const totalOutScale = scaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0);
+  // Calculate totals with whole numbers
+  const totalInScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.inValue || 0), 0));
+  const totalOutScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0));
   const finalMass = isNaN(totalOutScale) ? 0 : totalOutScale;
 
   // Handle scale value change
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue', value: number) => {
+    // Round to whole number
+    const roundedValue = Math.round(value);
+    
     const updatedEntries = [...scaleEntries];
-    updatedEntries[scaleIndex][field] = value;
+    updatedEntries[scaleIndex][field] = roundedValue;
     setScaleEntries(updatedEntries);
   };
 
@@ -57,7 +60,7 @@ const StrippingWorkEntryForm = ({
       scheduleId,
       scheduleItemId,
       employeeId,
-      quantity: finalMass, // Total output as the quantity
+      quantity: finalMass, // Total output as the quantity (whole number)
       remarks,
       scaleEntries
     });
@@ -106,7 +109,7 @@ const StrippingWorkEntryForm = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="number"
-                        step="0.01"
+                        step="1" // Changed from 0.01 to 1 for whole numbers
                         min="0"
                         className="input-field w-full"
                         value={entry.inValue || ""}
@@ -117,7 +120,7 @@ const StrippingWorkEntryForm = ({
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="number"
-                        step="0.01"
+                        step="1" // Changed from 0.01 to 1 for whole numbers
                         min="0"
                         className="input-field w-full"
                         value={entry.outValue || ""}
@@ -132,10 +135,10 @@ const StrippingWorkEntryForm = ({
                     Totals
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
-                    {totalInScale.toFixed(2)} kg
+                    {totalInScale} kg
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">
-                    {totalOutScale.toFixed(2)} kg
+                    {totalOutScale} kg
                   </td>
                 </tr>
               </tbody>
@@ -152,14 +155,14 @@ const StrippingWorkEntryForm = ({
             <div>
               <div className="p-3 bg-green-50 rounded-md">
                 <span className="block text-xs text-gray-600">Final Mass:</span>
-                <span className="font-medium">{finalMass.toFixed(2)} kg</span>
+                <span className="font-medium">{finalMass} kg</span>
               </div>
             </div>
             <div>
               <div className="p-3 bg-orange-50 rounded-md">
                 <span className="block text-xs text-gray-600">Variance:</span>
                 <span className={`font-medium ${finalMass >= targetMass ? 'text-green-600' : 'text-red-600'}`}>
-                  {(finalMass - targetMass).toFixed(2)} kg
+                  {(finalMass - targetMass)} kg
                 </span>
               </div>
             </div>
@@ -216,7 +219,7 @@ const StrippingWorkEntryForm = ({
                         {new Date(entry.recordedAt).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {entry.quantity.toFixed(2)} kg
+                        {entry.quantity} kg
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {entry.remarks || '-'}

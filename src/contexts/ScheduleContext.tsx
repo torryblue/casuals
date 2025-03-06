@@ -5,11 +5,14 @@ import { Employee } from './EmployeeContext';
 export type ScheduleItem = {
   id: string;
   task: string;
+  dutyName: string; // Added duty name field
   workers: number;
   employeeIds: string[];
-  // Additional fields for Stripping and Machine tasks
+  // Additional fields for different task types
   targetMass?: number;
   numberOfScales?: number;
+  numberOfBales?: number; // For Spraying
+  classGrades?: string[]; // For Grading
 };
 
 export type Schedule = {
@@ -43,6 +46,7 @@ type ScheduleContextType = {
   addWorkEntry: (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => void;
   getWorkEntriesForEmployee: (scheduleId: string, employeeId: string) => WorkEntry[];
   getAllSchedulesByEmployeeId: (employeeId: string) => Schedule[];
+  isEmployeeAssignedForDate: (employeeId: string, date: string) => boolean; // Added function
   updateSchedule: (scheduleId: string, updatedItems: ScheduleItem[]) => void;
   deleteSchedule: (scheduleId: string) => void;
   isLoading: boolean;
@@ -59,6 +63,15 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     const timestamp = new Date().getTime().toString().slice(-6);
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `${prefix}-${timestamp}-${random}`;
+  };
+
+  const isEmployeeAssignedForDate = (employeeId: string, date: string) => {
+    return schedules.some(schedule => 
+      schedule.date === date && 
+      schedule.items.some(item => 
+        item.employeeIds.includes(employeeId)
+      )
+    );
   };
 
   const addSchedule = (date: string, items: Omit<ScheduleItem, 'id'>[]) => {
@@ -155,6 +168,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       addWorkEntry,
       getWorkEntriesForEmployee,
       getAllSchedulesByEmployeeId,
+      isEmployeeAssignedForDate,
       updateSchedule,
       deleteSchedule,
       isLoading
