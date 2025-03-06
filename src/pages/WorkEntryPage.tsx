@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
+import AppLayout from "@/components/AppLayout";
 import { ArrowLeft, Calendar, ClipboardList } from "lucide-react";
 import { useSchedules, Schedule, ScheduleItem } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";

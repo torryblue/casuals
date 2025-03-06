@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
+import AppLayout from "@/components/AppLayout";
 import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";

@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppLayout } from "@/components/AppLayout";
+import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Plus, User } from "lucide-react";

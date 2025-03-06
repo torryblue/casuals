@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AppLayout } from "@/components/AppLayout";
+import AppLayout from "@/components/AppLayout";
 import { CalendarClock, FileText } from "lucide-react";
 
 const DashboardPage = () => {

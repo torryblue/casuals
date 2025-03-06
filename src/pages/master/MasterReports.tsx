@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { AppLayout } from "@/components/AppLayout";
+import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAuth } from "@/contexts/AuthContext";

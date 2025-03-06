@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { AppLayout } from "@/components/AppLayout";
+import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Edit, Trash, ArrowLeft } from "lucide-react";

@@ -18,6 +18,7 @@ export type Employee = {
 type EmployeeContextType = {
   employees: Employee[];
   addEmployee: (employee: Omit<Employee, 'id' | 'createdAt'>) => void;
+  removeEmployee: (id: string) => void; // Add the missing removeEmployee function
   isLoading: boolean;
 };
 
@@ -51,10 +52,23 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
     }, 1000);
   };
 
+  // Implement the removeEmployee function
+  const removeEmployee = (id: string) => {
+    setIsLoading(true);
+    
+    // Simulate API call for deletion
+    setTimeout(() => {
+      setEmployees(prev => prev.filter(employee => employee.id !== id));
+      setIsLoading(false);
+      toast.success("Employee removed successfully");
+    }, 800);
+  };
+
   return (
     <EmployeeContext.Provider value={{
       employees,
       addEmployee,
+      removeEmployee,
       isLoading
     }}>
       {children}
