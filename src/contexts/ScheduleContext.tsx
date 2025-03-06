@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { toast } from "sonner";
 import { Employee } from './EmployeeContext';
@@ -8,7 +7,7 @@ export type ScheduleItem = {
   task: string;
   workers: number;
   employeeIds: string[];
-  // Additional fields for Stripping task
+  // Additional fields for Stripping and Machine tasks
   targetMass?: number;
   numberOfScales?: number;
 };
@@ -43,6 +42,9 @@ type ScheduleContextType = {
   getScheduleById: (id: string) => Schedule | undefined;
   addWorkEntry: (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => void;
   getWorkEntriesForEmployee: (scheduleId: string, employeeId: string) => WorkEntry[];
+  getAllSchedulesByEmployeeId: (employeeId: string) => Schedule[];
+  updateSchedule: (scheduleId: string, updatedItems: ScheduleItem[]) => void;
+  deleteSchedule: (scheduleId: string) => void;
   isLoading: boolean;
 };
 
@@ -53,7 +55,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Generate a unique ID with prefix
   const generateId = (prefix: string) => {
     const timestamp = new Date().getTime().toString().slice(-6);
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -63,7 +64,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
   const addSchedule = (date: string, items: Omit<ScheduleItem, 'id'>[]) => {
     setIsLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       const scheduleItems = items.map(item => ({
         ...item,
@@ -90,7 +90,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
   const addWorkEntry = (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => {
     setIsLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       const newEntry = {
         ...entry,
@@ -110,6 +109,43 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const getAllSchedulesByEmployeeId = (employeeId: string) => {
+    return schedules.filter(schedule => 
+      schedule.items.some(item => 
+        item.employeeIds.includes(employeeId)
+      )
+    );
+  };
+
+  const updateSchedule = (scheduleId: string, updatedItems: ScheduleItem[]) => {
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      setSchedules(prev => 
+        prev.map(schedule => 
+          schedule.id === scheduleId 
+            ? { ...schedule, items: updatedItems } 
+            : schedule
+        )
+      );
+      
+      setIsLoading(false);
+      toast.success("Schedule updated successfully");
+    }, 1000);
+  };
+
+  const deleteSchedule = (scheduleId: string) => {
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      setSchedules(prev => prev.filter(schedule => schedule.id !== scheduleId));
+      setWorkEntries(prev => prev.filter(entry => entry.scheduleId !== scheduleId));
+      
+      setIsLoading(false);
+      toast.success("Schedule deleted successfully");
+    }, 1000);
+  };
+
   return (
     <ScheduleContext.Provider value={{
       schedules,
@@ -118,6 +154,9 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       getScheduleById,
       addWorkEntry,
       getWorkEntriesForEmployee,
+      getAllSchedulesByEmployeeId,
+      updateSchedule,
+      deleteSchedule,
       isLoading
     }}>
       {children}

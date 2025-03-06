@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
@@ -7,6 +6,7 @@ import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import StrippingScheduleForm from "@/components/StrippingScheduleForm";
+import MachineScheduleForm from "@/components/MachineScheduleForm";
 
 const PREDEFINED_TASKS = [
   "Stripping",
@@ -35,7 +35,6 @@ const CreateSchedulePage = () => {
     }
   ]);
 
-  // Auto-set the current date when component mounts
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setScheduleDate(today);
@@ -93,14 +92,23 @@ const CreateSchedulePage = () => {
     setScheduleItems(newItems);
   };
 
+  const handleMachineDataChange = (index: number, data: { employeeIds: string[], targetMass: number, workers: number }) => {
+    const newItems = [...scheduleItems];
+    newItems[index] = { 
+      ...newItems[index], 
+      employeeIds: data.employeeIds,
+      workers: data.workers,
+      targetMass: data.targetMass
+    };
+    setScheduleItems(newItems);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Save schedule using context
     addSchedule(scheduleDate, scheduleItems);
     
-    // Navigate after delay to give time for the toast
     setTimeout(() => {
       setIsLoading(false);
       navigate('/');
@@ -186,7 +194,7 @@ const CreateSchedulePage = () => {
                           </select>
                         </div>
                         
-                        {item.task !== "Stripping" && (
+                        {item.task !== "Stripping" && item.task !== "Machine" && (
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-gray-600">
                               Workers Needed
@@ -204,12 +212,19 @@ const CreateSchedulePage = () => {
                         )}
                       </div>
                       
-                      {/* Show different forms based on task type */}
                       {item.task === "Stripping" ? (
                         <div className="mt-4">
                           <StrippingScheduleForm 
                             employeeIds={item.employeeIds}
                             onChange={(data) => handleStrippingDataChange(index, data)}
+                          />
+                        </div>
+                      ) : item.task === "Machine" ? (
+                        <div className="mt-4">
+                          <MachineScheduleForm 
+                            employeeIds={item.employeeIds}
+                            targetMass={item.targetMass}
+                            onChange={(data) => handleMachineDataChange(index, data)}
                           />
                         </div>
                       ) : (

@@ -1,9 +1,23 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
+// Routes that require admin role
+const ADMIN_ONLY_ROUTES = [
+  "/master",
+  "/master/employees",
+  "/master/schedules", 
+  "/master/reports"
+];
+
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
+
+  // Check if current path is an admin-only route
+  const isAdminRoute = ADMIN_ONLY_ROUTES.some(route => 
+    location.pathname.startsWith(route)
+  );
 
   if (isLoading) {
     return (
@@ -18,6 +32,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Check if user has admin rights for admin-only routes
+  if (isAdminRoute && user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

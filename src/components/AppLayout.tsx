@@ -10,7 +10,8 @@ import {
   FileText, 
   Settings,
   ChevronDown,
-  LogOut
+  LogOut,
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,56 +20,40 @@ type SidebarItem = {
   icon: React.ElementType;
   path: string;
   children?: { title: string; path: string }[];
+  requiredRole?: 'admin' | 'user' | undefined; // Add role requirement
 };
 
-const SIDEBAR_ITEMS: SidebarItem[] = [
-  {
-    title: "GENERAL",
-    icon: ChevronDown,
-    path: "",
-    children: [
-      { title: "Dashboard", path: "/" },
-      { title: "Employees", path: "/employees" }
-    ]
-  },
-  {
-    title: "REPORTS",
-    icon: ChevronDown,
-    path: "",
-    children: [
-      { title: "Salary Sheet", path: "/reports/salary" },
-      { title: "Performance", path: "/reports/performance" }
-    ]
-  },
-  {
-    title: "TRANSACTION",
-    icon: ChevronDown,
-    path: "",
-    children: [
-      { title: "Salary Sheet", path: "/transactions/salary" }
-    ]
-  },
-  {
-    title: "MASTER",
-    icon: ChevronDown,
-    path: "",
-    children: []
-  },
-  {
-    title: "USER",
-    icon: ChevronDown,
-    path: "",
-    children: []
-  }
-];
-
-export const AppLayout = ({ children }: { children: React.ReactNode }) => {
+const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     "GENERAL": true
   });
+
+  // Define sidebar items with role requirements
+  const SIDEBAR_ITEMS: SidebarItem[] = [
+    {
+      title: "GENERAL",
+      icon: ChevronDown,
+      path: "",
+      children: [
+        { title: "Dashboard", path: "/" },
+        { title: "Employees", path: "/employees" }
+      ]
+    },
+    {
+      title: "MASTER",
+      icon: ChevronDown,
+      path: "",
+      requiredRole: 'admin', // Only admins can see this
+      children: [
+        { title: "Employee List", path: "/master/employees" },
+        { title: "Schedule List", path: "/master/schedules" },
+        { title: "Work Reports", path: "/master/reports" }
+      ]
+    }
+  ];
 
   const toggleSection = (title: string) => {
     setExpandedSections(prev => ({
@@ -82,6 +67,11 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
     navigate('/login');
   };
 
+  // Filter sidebar items based on user role
+  const filteredSidebarItems = SIDEBAR_ITEMS.filter(item => 
+    !item.requiredRole || (user && user.role === item.requiredRole)
+  );
+
   return (
     <div className="flex h-screen w-full overflow-hidden">
       {/* Sidebar */}
@@ -94,7 +84,7 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto">
           <nav className="px-2 py-4">
-            {SIDEBAR_ITEMS.map((section) => (
+            {filteredSidebarItems.map((section) => (
               <div key={section.title} className="mb-2">
                 <button
                   onClick={() => toggleSection(section.title)}
@@ -129,10 +119,21 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
           </nav>
         </div>
 
+        {/* User info and role */}
+        <div className="px-6 py-2 border-t border-gray-800">
+          <div className="text-sm text-gray-400">
+            <span>Logged in as: </span>
+            <span className="text-white">{user?.username}</span>
+          </div>
+          <div className="text-xs text-gray-500">
+            Role: {user?.role === 'admin' ? 'Administrator' : 'Standard User'}
+          </div>
+        </div>
+
         {/* Logout button */}
         <button
           onClick={handleLogout}
-          className="flex items-center px-6 py-3 mt-auto text-sm text-gray-400 hover:text-white border-t border-gray-800"
+          className="flex items-center px-6 py-3 mt-2 text-sm text-gray-400 hover:text-white border-t border-gray-800"
         >
           <LogOut className="w-4 h-4 mr-2" />
           <span>Logout</span>
@@ -149,3 +150,5 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
     </div>
   );
 };
+
+export default AppLayout;

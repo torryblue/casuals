@@ -17,6 +17,11 @@ import CreateSchedulePage from "./pages/CreateSchedulePage";
 import WorkEntryPage from "./pages/WorkEntryPage";
 import NotFound from "./pages/NotFound";
 
+// Import master list pages
+import MasterEmployeeList from "./pages/master/MasterEmployeeList";
+import MasterScheduleList from "./pages/master/MasterScheduleList";
+import MasterReports from "./pages/master/MasterReports";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,6 +41,11 @@ const App = () => (
                 <Route path="/employees/create" element={<ProtectedRoute><CreateEmployeePage /></ProtectedRoute>} />
                 <Route path="/schedule/create" element={<ProtectedRoute><CreateSchedulePage /></ProtectedRoute>} />
                 <Route path="/work-entry" element={<ProtectedRoute><WorkEntryPage /></ProtectedRoute>} />
+                
+                {/* Master List Routes - Admin Only */}
+                <Route path="/master/employees" element={<ProtectedRoute><MasterEmployeeList /></ProtectedRoute>} />
+                <Route path="/master/schedules" element={<ProtectedRoute><MasterScheduleList /></ProtectedRoute>} />
+                <Route path="/master/reports" element={<ProtectedRoute><MasterReports /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>
