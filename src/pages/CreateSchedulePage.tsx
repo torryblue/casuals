@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -36,7 +35,10 @@ const CreateSchedulePage = () => {
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
-      numberOfScales: 1
+      numberOfScales: 1,
+      numberOfBales: 0,
+      classGrades: [],
+      quantity: 0
     }
   ]);
 
@@ -52,7 +54,10 @@ const CreateSchedulePage = () => {
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
-      numberOfScales: 1
+      numberOfScales: 1,
+      numberOfBales: 0,
+      classGrades: [],
+      quantity: 0
     }]);
   };
 
@@ -73,7 +78,6 @@ const CreateSchedulePage = () => {
   };
 
   const handleEmployeeSelection = (index: number, employeeId: string, isSelected: boolean) => {
-    // Check if employee is already assigned for this date
     if (isSelected && isEmployeeAssignedForDate(employeeId, scheduleDate)) {
       toast.error("This employee is already assigned to another duty for this date.");
       return;
@@ -92,7 +96,6 @@ const CreateSchedulePage = () => {
     setScheduleItems(newItems);
   };
 
-  // Helper for converting input values to whole numbers
   const ensureWholeNumber = (value: number): number => {
     return Math.round(value);
   };

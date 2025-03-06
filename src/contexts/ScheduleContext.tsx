@@ -5,14 +5,14 @@ import { Employee } from './EmployeeContext';
 export type ScheduleItem = {
   id: string;
   task: string;
-  dutyName: string; // Added duty name field
+  dutyName: string;
   workers: number;
   employeeIds: string[];
-  // Additional fields for different task types
   targetMass?: number;
   numberOfScales?: number;
-  numberOfBales?: number; // For Spraying
-  classGrades?: string[]; // For Grading
+  numberOfBales?: number;
+  classGrades?: string[];
+  quantity?: number;
 };
 
 export type Schedule = {
@@ -30,7 +30,6 @@ export type WorkEntry = {
   quantity: number;
   remarks: string;
   recordedAt: Date;
-  // Fields for Stripping task
   scaleEntries?: {
     scaleNumber: number;
     inValue: number;
@@ -46,7 +45,7 @@ type ScheduleContextType = {
   addWorkEntry: (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => void;
   getWorkEntriesForEmployee: (scheduleId: string, employeeId: string) => WorkEntry[];
   getAllSchedulesByEmployeeId: (employeeId: string) => Schedule[];
-  isEmployeeAssignedForDate: (employeeId: string, date: string) => boolean; // Added function
+  isEmployeeAssignedForDate: (employeeId: string, date: string) => boolean;
   updateSchedule: (scheduleId: string, updatedItems: ScheduleItem[]) => void;
   deleteSchedule: (scheduleId: string) => void;
   isLoading: boolean;
