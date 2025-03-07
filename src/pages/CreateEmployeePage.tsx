@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Check, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 const CreateEmployeePage = () => {
   const navigate = useNavigate();
   const { addEmployee, isLoading } = useEmployees();
+  const [submitInProgress, setSubmitInProgress] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -28,10 +30,31 @@ const CreateEmployeePage = () => {
     }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addEmployee(formData);
-    navigate('/employees');
+    
+    // Prevent double submissions
+    if (submitInProgress || isLoading) return;
+    
+    setSubmitInProgress(true);
+    
+    try {
+      console.log("Creating employee with data:", formData);
+      const success = await addEmployee(formData);
+      
+      if (success) {
+        console.log("Employee created successfully");
+        navigate('/employees');
+      } else {
+        console.error("Failed to create employee");
+        // Toast error is already handled inside addEmployee
+      }
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+      toast.error("Something went wrong while creating the employee. Please try again.");
+    } finally {
+      setSubmitInProgress(false);
+    }
   };
 
   return (
