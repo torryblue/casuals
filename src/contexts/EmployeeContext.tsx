@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase, checkSupabaseConnection } from '@/lib/supabase';
@@ -7,12 +6,12 @@ export type Employee = {
   id: string;
   name: string;
   surname: string;
-  id_no: string;  // Changed from idNo to id_no to match Supabase schema
+  idNo: string;  // Changed back to camelCase to match Supabase schema
   contact: string;
   address: string;
   gender: string;
-  next_of_kin_name: string;  // Changed from nextOfKinName to next_of_kin_name
-  next_of_kin_contact: string;  // Changed from nextOfKinContact to next_of_kin_contact
+  nextOfKinName: string;  // Changed back to camelCase to match Supabase schema
+  nextOfKinContact: string;  // Changed back to camelCase to match Supabase schema
 };
 
 type EmployeeContextType = {
@@ -31,7 +30,6 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const [connectionChecked, setConnectionChecked] = useState(false);
 
   useEffect(() => {
-    // Check connection and fetch employees when component mounts
     const initSupabase = async () => {
       const isConnected = await checkSupabaseConnection();
       setConnectionChecked(true);
@@ -60,19 +58,7 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         console.log('Fetched employees:', data);
-        // Map the database column names to our frontend property names
-        const mappedEmployees = data.map(emp => ({
-          id: emp.id,
-          name: emp.name,
-          surname: emp.surname,
-          id_no: emp.id_no,
-          contact: emp.contact,
-          address: emp.address,
-          gender: emp.gender,
-          next_of_kin_name: emp.next_of_kin_name,
-          next_of_kin_contact: emp.next_of_kin_contact
-        }));
-        setEmployees(mappedEmployees as Employee[]);
+        setEmployees(data as Employee[]);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -89,21 +75,13 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<boolean> => {
     setIsLoading(true);
     
-    // Format the employee data to match the database column names
     const newEmployee = {
       id: generateId(),
-      name: employee.name,
-      surname: employee.surname,
-      id_no: employee.id_no,
-      contact: employee.contact,
-      address: employee.address,
-      gender: employee.gender,
-      next_of_kin_name: employee.next_of_kin_name,
-      next_of_kin_contact: employee.next_of_kin_contact
+      ...employee
     };
     
     try {
-      console.log('Adding employee with formatted data:', newEmployee);
+      console.log('Adding employee with data:', newEmployee);
       
       const { error, data } = await supabase
         .from('employees')
@@ -122,7 +100,6 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error('Error adding employee:', error);
       
-      // More detailed error message
       let errorMessage = 'Unknown error';
       if (error.message) {
         errorMessage = error.message;
@@ -141,21 +118,9 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Format the employee data to match the database column names
-      const formattedData = {
-        name: updatedData.name,
-        surname: updatedData.surname,
-        id_no: updatedData.id_no,
-        contact: updatedData.contact,
-        address: updatedData.address,
-        gender: updatedData.gender,
-        next_of_kin_name: updatedData.next_of_kin_name,
-        next_of_kin_contact: updatedData.next_of_kin_contact
-      };
-      
       const { error } = await supabase
         .from('employees')
-        .update(formattedData)
+        .update(updatedData)
         .eq('id', id);
       
       if (error) {
