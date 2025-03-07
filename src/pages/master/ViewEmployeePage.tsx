@@ -70,7 +70,7 @@ const ViewEmployeePage = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500">ID Number</p>
-                <p className="font-medium">{employee.idNo}</p>
+                <p className="font-medium">{employee.id_no}</p>
               </div>
               
               <div>
@@ -90,9 +90,9 @@ const ViewEmployeePage = () => {
               
               <div className="border-t pt-4">
                 <p className="text-sm text-gray-500">Next of Kin</p>
-                <p className="font-medium">{employee.nextOfKinName}</p>
+                <p className="font-medium">{employee.next_of_kin_name}</p>
                 <p className="text-sm text-gray-500 mt-1">Contact</p>
-                <p className="font-medium">{employee.nextOfKinContact}</p>
+                <p className="font-medium">{employee.next_of_kin_contact}</p>
               </div>
             </div>
           </div>

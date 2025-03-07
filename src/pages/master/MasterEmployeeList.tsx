@@ -24,7 +24,7 @@ const MasterEmployeeList = () => {
   const filteredEmployees = employees.filter(employee => 
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.idNo.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.id_no.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDeleteEmployee = (id: string) => {
@@ -98,7 +98,7 @@ const MasterEmployeeList = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.contact}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.address}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.gender}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{employee.nextOfKinName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{employee.next_of_kin_name}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <div className="flex space-x-2">
                           <button 
