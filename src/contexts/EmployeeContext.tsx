@@ -1,6 +1,7 @@
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
+import { supabase } from '@/lib/supabase';
 
 export type Employee = {
   id: string;
@@ -28,29 +29,78 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    // Fetch employees from Supabase when component mounts
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setEmployees(data as Employee[]);
+      }
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      toast.error('Failed to fetch employees');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const generateId = () => {
     return `EMP-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
   };
 
-  const addEmployee = (employee: Omit<Employee, 'id'>) => {
+  const addEmployee = async (employee: Omit<Employee, 'id'>) => {
     setIsLoading(true);
     
-    setTimeout(() => {
-      const newEmployee = {
-        ...employee,
-        id: generateId()
-      };
+    const newEmployee = {
+      ...employee,
+      id: generateId()
+    };
+    
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .insert([newEmployee]);
+      
+      if (error) {
+        throw error;
+      }
       
       setEmployees(prev => [...prev, newEmployee]);
-      setIsLoading(false);
       toast.success("Employee created successfully");
-    }, 1000);
+    } catch (error) {
+      console.error('Error adding employee:', error);
+      toast.error('Failed to create employee');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateEmployee = (id: string, updatedData: Omit<Employee, 'id'>) => {
+  const updateEmployee = async (id: string, updatedData: Omit<Employee, 'id'>) => {
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .update(updatedData)
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
       setEmployees(prev => 
         prev.map(employee => 
           employee.id === id 
@@ -59,19 +109,36 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
         )
       );
       
-      setIsLoading(false);
       toast.success("Employee updated successfully");
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      toast.error('Failed to update employee');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const removeEmployee = (id: string) => {
+  const removeEmployee = async (id: string) => {
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
+      const { error } = await supabase
+        .from('employees')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
       setEmployees(prev => prev.filter(employee => employee.id !== id));
-      setIsLoading(false);
       toast.success("Employee removed successfully");
-    }, 1000);
+    } catch (error) {
+      console.error('Error removing employee:', error);
+      toast.error('Failed to remove employee');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

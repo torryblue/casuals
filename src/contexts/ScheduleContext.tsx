@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
+import { supabase } from '@/lib/supabase';
 import { Employee } from './EmployeeContext';
 
 export type ScheduleItem = {
@@ -58,6 +60,70 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
   const [workEntries, setWorkEntries] = useState<WorkEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    // Fetch schedules and work entries from Supabase when component mounts
+    fetchSchedules();
+    fetchWorkEntries();
+  }, []);
+
+  const fetchSchedules = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('schedules')
+        .select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        // Convert date strings back to Date objects
+        const formattedSchedules = data.map(schedule => ({
+          ...schedule,
+          createdAt: new Date(schedule.createdAt)
+        }));
+        
+        setSchedules(formattedSchedules as Schedule[]);
+      }
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      toast.error('Failed to fetch schedules');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchWorkEntries = async () => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('work_entries')
+        .select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        // Convert date strings back to Date objects
+        const formattedEntries = data.map(entry => ({
+          ...entry,
+          recordedAt: new Date(entry.recordedAt)
+        }));
+        
+        setWorkEntries(formattedEntries as WorkEntry[]);
+      }
+    } catch (error) {
+      console.error('Error fetching work entries:', error);
+      toast.error('Failed to fetch work entries');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const generateId = (prefix: string) => {
     const timestamp = new Date().getTime().toString().slice(-6);
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -73,10 +139,10 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const addSchedule = (date: string, items: Omit<ScheduleItem, 'id'>[]) => {
+  const addSchedule = async (date: string, items: Omit<ScheduleItem, 'id'>[]) => {
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
       const scheduleItems = items.map(item => ({
         ...item,
         id: generateId('ITEM')
@@ -89,30 +155,62 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date()
       };
       
+      // Store the schedule in Supabase
+      const { error } = await supabase
+        .from('schedules')
+        .insert([{
+          ...newSchedule,
+          createdAt: newSchedule.createdAt.toISOString() // Convert Date to string for Postgres
+        }]);
+      
+      if (error) {
+        throw error;
+      }
+      
       setSchedules(prev => [...prev, newSchedule]);
-      setIsLoading(false);
       toast.success(`Schedule for ${date} created successfully`);
-    }, 1000);
+    } catch (error) {
+      console.error('Error adding schedule:', error);
+      toast.error('Failed to create schedule');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getScheduleById = (id: string) => {
     return schedules.find(schedule => schedule.id === id);
   };
 
-  const addWorkEntry = (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => {
+  const addWorkEntry = async (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => {
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
       const newEntry = {
         ...entry,
         id: generateId('WORK'),
         recordedAt: new Date()
       };
       
+      // Store the work entry in Supabase
+      const { error } = await supabase
+        .from('work_entries')
+        .insert([{
+          ...newEntry,
+          recordedAt: newEntry.recordedAt.toISOString() // Convert Date to string for Postgres
+        }]);
+      
+      if (error) {
+        throw error;
+      }
+      
       setWorkEntries(prev => [...prev, newEntry]);
-      setIsLoading(false);
       toast.success(`Work entry recorded successfully`);
-    }, 1000);
+    } catch (error) {
+      console.error('Error adding work entry:', error);
+      toast.error('Failed to record work entry');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getWorkEntriesForEmployee = (scheduleId: string, employeeId: string) => {
@@ -129,33 +227,85 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const updateSchedule = (scheduleId: string, updatedItems: ScheduleItem[]) => {
+  const updateSchedule = async (scheduleId: string, updatedItems: ScheduleItem[]) => {
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
+      const scheduleToUpdate = schedules.find(s => s.id === scheduleId);
+      
+      if (!scheduleToUpdate) {
+        throw new Error('Schedule not found');
+      }
+      
+      const updatedSchedule = {
+        ...scheduleToUpdate,
+        items: updatedItems
+      };
+      
+      // Update the schedule in Supabase
+      const { error } = await supabase
+        .from('schedules')
+        .update({
+          ...updatedSchedule,
+          createdAt: updatedSchedule.createdAt.toISOString() // Convert Date to string for Postgres
+        })
+        .eq('id', scheduleId);
+      
+      if (error) {
+        throw error;
+      }
+      
       setSchedules(prev => 
         prev.map(schedule => 
           schedule.id === scheduleId 
-            ? { ...schedule, items: updatedItems } 
+            ? updatedSchedule 
             : schedule
         )
       );
       
-      setIsLoading(false);
       toast.success("Schedule updated successfully");
-    }, 1000);
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      toast.error('Failed to update schedule');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const deleteSchedule = (scheduleId: string) => {
+  const deleteSchedule = async (scheduleId: string) => {
     setIsLoading(true);
     
-    setTimeout(() => {
+    try {
+      // First delete all related work entries
+      const { error: entriesError } = await supabase
+        .from('work_entries')
+        .delete()
+        .eq('scheduleId', scheduleId);
+      
+      if (entriesError) {
+        throw entriesError;
+      }
+      
+      // Then delete the schedule
+      const { error: scheduleError } = await supabase
+        .from('schedules')
+        .delete()
+        .eq('id', scheduleId);
+      
+      if (scheduleError) {
+        throw scheduleError;
+      }
+      
       setSchedules(prev => prev.filter(schedule => schedule.id !== scheduleId));
       setWorkEntries(prev => prev.filter(entry => entry.scheduleId !== scheduleId));
       
-      setIsLoading(false);
       toast.success("Schedule deleted successfully");
-    }, 1000);
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      toast.error('Failed to delete schedule');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
