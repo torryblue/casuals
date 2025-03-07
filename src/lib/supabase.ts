@@ -10,10 +10,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export const checkSupabaseConnection = async () => {
   try {
     // Try a simple query to check connection
-    const { data, error } = await supabase.from('employees').select('count', { count: 'exact', head: true });
+    const { error } = await supabase.from('employees').select('count', { count: 'exact', head: true });
     
     if (error) {
       console.error('Supabase connection error:', error);
+      
+      // Additional diagnostic information
+      if (error.code === 'PGRST204') {
+        console.warn('Table or column might not exist. Please check your database schema.');
+      }
+      
       return false;
     }
     

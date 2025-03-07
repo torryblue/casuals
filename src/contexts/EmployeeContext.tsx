@@ -7,12 +7,12 @@ export type Employee = {
   id: string;
   name: string;
   surname: string;
-  idNo: string;
+  id_no: string;  // Changed from idNo to id_no to match Supabase schema
   contact: string;
   address: string;
   gender: string;
-  nextOfKinName: string;
-  nextOfKinContact: string;
+  next_of_kin_name: string;  // Changed from nextOfKinName to next_of_kin_name
+  next_of_kin_contact: string;  // Changed from nextOfKinContact to next_of_kin_contact
 };
 
 type EmployeeContextType = {
@@ -60,7 +60,19 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         console.log('Fetched employees:', data);
-        setEmployees(data as Employee[]);
+        // Map the database column names to our frontend property names
+        const mappedEmployees = data.map(emp => ({
+          id: emp.id,
+          name: emp.name,
+          surname: emp.surname,
+          id_no: emp.id_no,
+          contact: emp.contact,
+          address: emp.address,
+          gender: emp.gender,
+          next_of_kin_name: emp.next_of_kin_name,
+          next_of_kin_contact: emp.next_of_kin_contact
+        }));
+        setEmployees(mappedEmployees as Employee[]);
       }
     } catch (error) {
       console.error('Error fetching employees:', error);
@@ -77,13 +89,21 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<boolean> => {
     setIsLoading(true);
     
+    // Format the employee data to match the database column names
     const newEmployee = {
-      ...employee,
-      id: generateId()
+      id: generateId(),
+      name: employee.name,
+      surname: employee.surname,
+      id_no: employee.id_no,
+      contact: employee.contact,
+      address: employee.address,
+      gender: employee.gender,
+      next_of_kin_name: employee.next_of_kin_name,
+      next_of_kin_contact: employee.next_of_kin_contact
     };
     
     try {
-      console.log('Adding employee:', newEmployee);
+      console.log('Adding employee with formatted data:', newEmployee);
       
       const { error, data } = await supabase
         .from('employees')
@@ -101,7 +121,16 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (error: any) {
       console.error('Error adding employee:', error);
-      toast.error(`Failed to create employee: ${error.message || 'Unknown error'}`);
+      
+      // More detailed error message
+      let errorMessage = 'Unknown error';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.details) {
+        errorMessage = error.details;
+      }
+      
+      toast.error(`Failed to create employee: ${errorMessage}`);
       return false;
     } finally {
       setIsLoading(false);
@@ -112,9 +141,21 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      // Format the employee data to match the database column names
+      const formattedData = {
+        name: updatedData.name,
+        surname: updatedData.surname,
+        id_no: updatedData.id_no,
+        contact: updatedData.contact,
+        address: updatedData.address,
+        gender: updatedData.gender,
+        next_of_kin_name: updatedData.next_of_kin_name,
+        next_of_kin_contact: updatedData.next_of_kin_contact
+      };
+      
       const { error } = await supabase
         .from('employees')
-        .update(updatedData)
+        .update(formattedData)
         .eq('id', id);
       
       if (error) {

@@ -14,12 +14,12 @@ const CreateEmployeePage = () => {
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
-    idNo: "",
+    id_no: "",  // Changed from idNo to id_no
     contact: "",
     address: "",
     gender: "Male",
-    nextOfKinName: "",
-    nextOfKinContact: ""
+    next_of_kin_name: "",  // Changed from nextOfKinName to next_of_kin_name
+    next_of_kin_contact: ""  // Changed from nextOfKinContact to next_of_kin_contact
   });
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -108,17 +108,17 @@ const CreateEmployeePage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="idNo" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="id_no" className="block text-sm font-medium text-gray-700">
                     ID Number <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="idNo"
-                    name="idNo"
+                    id="id_no"
+                    name="id_no"
                     type="text"
                     required
                     className="input-field w-full"
                     placeholder="Enter ID number"
-                    value={formData.idNo}
+                    value={formData.id_no}
                     onChange={handleChange}
                   />
                 </div>
@@ -177,33 +177,33 @@ const CreateEmployeePage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="nextOfKinName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="next_of_kin_name" className="block text-sm font-medium text-gray-700">
                     Next of Kin Name <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="nextOfKinName"
-                    name="nextOfKinName"
+                    id="next_of_kin_name"
+                    name="next_of_kin_name"
                     type="text"
                     required
                     className="input-field w-full"
                     placeholder="Enter next of kin name"
-                    value={formData.nextOfKinName}
+                    value={formData.next_of_kin_name}
                     onChange={handleChange}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="nextOfKinContact" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="next_of_kin_contact" className="block text-sm font-medium text-gray-700">
                     Next of Kin Contact <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="nextOfKinContact"
-                    name="nextOfKinContact"
+                    id="next_of_kin_contact"
+                    name="next_of_kin_contact"
                     type="tel"
                     required
                     className="input-field w-full"
                     placeholder="Enter next of kin contact"
-                    value={formData.nextOfKinContact}
+                    value={formData.next_of_kin_contact}
                     onChange={handleChange}
                   />
                 </div>
