@@ -142,8 +142,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Map items removing the 'dutyName' property and adding ID
-      const scheduleItems = items.map(({ dutyName, ...item }) => ({
+      // Map items and add ID
+      const scheduleItems = items.map(item => ({
         ...item,
         id: generateId('ITEM')
       }));
