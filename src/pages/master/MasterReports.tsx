@@ -94,6 +94,14 @@ const MasterReports = () => {
     return `${entry.quantity}`;
   };
 
+  // Helper function to get in scale total for a stripping entry
+  const getInScaleTotal = (entry) => {
+    if (entry.scaleEntries && Array.isArray(entry.scaleEntries)) {
+      return Math.round(entry.scaleEntries.reduce((sum, se) => sum + (se.inValue || 0), 0));
+    }
+    return 'N/A';
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -207,7 +215,8 @@ const MasterReports = () => {
                             {selectedTask?.toLowerCase() === "stripping" || !selectedTask ? (
                               <>
                                 <th className="px-4 py-2 text-left">Target Mass</th>
-                                <th className="px-4 py-2 text-left">Final Mass</th>
+                                <th className="px-4 py-2 text-left">In Scale Total</th>
+                                <th className="px-4 py-2 text-left">Out Scale Mass</th>
                                 <th className="px-4 py-2 text-left">Variance</th>
                                 <th className="px-4 py-2 text-left">Total Sticks</th>
                                 <th className="px-4 py-2 text-left">FM</th>
@@ -231,6 +240,7 @@ const MasterReports = () => {
                                 {isStripping || !selectedTask ? (
                                   <>
                                     <td className="px-4 py-2">{details.targetMass || 'N/A'}</td>
+                                    <td className="px-4 py-2">{getInScaleTotal(entry)}</td>
                                     <td className="px-4 py-2">{entry.quantity}</td>
                                     <td className="px-4 py-2">
                                       {details.targetMass ? (

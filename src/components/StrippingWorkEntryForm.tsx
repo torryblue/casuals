@@ -217,7 +217,7 @@ const StrippingWorkEntryForm = ({
               </div>
               <div>
                 <div className="p-3 bg-green-50 rounded-md">
-                  <span className="block text-xs text-gray-600">Final Mass:</span>
+                  <span className="block text-xs text-gray-600">Out Scale Mass:</span>
                   <span className="font-medium">{finalMass} kg</span>
                 </div>
               </div>
@@ -293,7 +293,7 @@ const StrippingWorkEntryForm = ({
                       Date & Time
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Final Mass
+                      Out Scale Mass
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Total Sticks

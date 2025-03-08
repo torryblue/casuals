@@ -197,7 +197,7 @@ const ViewSchedulePage = () => {
                     <tr className="bg-gray-50 text-left">
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Employee</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Task</th>
-                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Quantity</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Quantity/Out Scale Mass</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Remarks</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Recorded At</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Status</th>
@@ -207,6 +207,7 @@ const ViewSchedulePage = () => {
                     {scheduleWorkEntries.map((entry) => {
                       const task = schedule.items.find(item => item.id === entry.scheduleItemId);
                       const isTicketTask = task?.task.toLowerCase() === "tickets";
+                      const isStrippingTask = task?.task.toLowerCase() === "stripping";
                       const isLocked = entry.locked === true;
                       
                       return (
@@ -218,7 +219,7 @@ const ViewSchedulePage = () => {
                             {task ? task.task : 'Unknown Task'}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
-                            {isTicketTask ? 'N/A' : `${entry.quantity}`}
+                            {isTicketTask ? 'N/A' : isStrippingTask ? `${entry.quantity} kg (Out Scale)` : `${entry.quantity}`}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             {entry.remarks || 'None'}
