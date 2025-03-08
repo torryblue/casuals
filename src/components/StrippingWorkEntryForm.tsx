@@ -52,7 +52,7 @@ const StrippingWorkEntryForm = ({
   const totalInScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.inValue || 0), 0));
   const totalOutScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0));
   const totalSticks = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0));
-  const finalMass = isNaN(totalOutScale) ? 0 : totalOutScale;
+  const finalMass = totalOutScale; // Final mass is the sum of output scale values
 
   // Handle scale value change
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
@@ -72,7 +72,7 @@ const StrippingWorkEntryForm = ({
       scheduleId,
       scheduleItemId,
       employeeId,
-      quantity: finalMass, // Total output as the quantity (whole number)
+      quantity: finalMass, // Using the total output as the quantity (whole number)
       remarks,
       scaleEntries,
       fm
