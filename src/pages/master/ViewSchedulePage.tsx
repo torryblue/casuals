@@ -4,14 +4,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { ArrowLeft, Calendar, User } from "lucide-react";
+import { ArrowLeft, Calendar, User, Lock, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 const ViewSchedulePage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getScheduleById, workEntries } = useSchedules();
+  const { getScheduleById, workEntries, isEmployeeEntryLocked } = useSchedules();
   const { employees } = useEmployees();
   
   const [schedule, setSchedule] = useState<any>(null);
@@ -35,6 +35,10 @@ const ViewSchedulePage = () => {
 
   const getScheduleWorkEntries = () => {
     return workEntries.filter(entry => entry.scheduleId === id);
+  };
+
+  const checkIfLocked = (scheduleItemId: string, employeeId: string) => {
+    return isEmployeeEntryLocked(id || '', scheduleItemId, employeeId);
   };
 
   if (!schedule) {
@@ -106,7 +110,7 @@ const ViewSchedulePage = () => {
               {schedule.items.map((item, index) => (
                 <div key={item.id} className="p-4 border rounded-md bg-gray-50">
                   <h3 className="font-medium text-gray-800">
-                    {item.task} - {item.dutyName}
+                    {item.task}
                   </h3>
                   
                   <div className="grid grid-cols-2 gap-4 mt-2">
@@ -143,10 +147,17 @@ const ViewSchedulePage = () => {
                       </div>
                     )}
                     
-                    {item.quantity > 0 && (
+                    {item.quantity > 0 && item.task.toLowerCase() !== "tickets" && (
                       <div>
-                        <p className="text-sm text-gray-500">Quantity (Tickets)</p>
+                        <p className="text-sm text-gray-500">Quantity</p>
                         <p className="font-medium">{item.quantity}</p>
+                      </div>
+                    )}
+                    
+                    {item.task.toLowerCase() === "tickets" && (
+                      <div>
+                        <p className="text-sm text-gray-500">Quantity</p>
+                        <p className="font-medium">N/A</p>
                       </div>
                     )}
                   </div>
@@ -154,15 +165,20 @@ const ViewSchedulePage = () => {
                   <div className="mt-4">
                     <p className="text-sm text-gray-500 mb-2">Assigned Employees</p>
                     <div className="flex flex-wrap gap-2">
-                      {item.employeeIds.map(employeeId => (
-                        <div 
-                          key={employeeId} 
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                        >
-                          <User className="h-3 w-3 mr-1" />
-                          {getEmployeeName(employeeId)}
-                        </div>
-                      ))}
+                      {item.employeeIds.map(employeeId => {
+                        const isLocked = checkIfLocked(item.id, employeeId);
+                        return (
+                          <div 
+                            key={employeeId} 
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              isLocked ? 'bg-gray-100 text-gray-800' : 'bg-blue-100 text-blue-800'
+                            }`}
+                          >
+                            {isLocked ? <Lock className="h-3 w-3 mr-1" /> : <User className="h-3 w-3 mr-1" />}
+                            {getEmployeeName(employeeId)}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -184,27 +200,44 @@ const ViewSchedulePage = () => {
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Quantity</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Remarks</th>
                       <th className="px-4 py-3 text-sm font-medium text-gray-600">Recorded At</th>
+                      <th className="px-4 py-3 text-sm font-medium text-gray-600">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {scheduleWorkEntries.map((entry) => {
                       const task = schedule.items.find(item => item.id === entry.scheduleItemId);
+                      const isTicketTask = task?.task.toLowerCase() === "tickets";
+                      const isLocked = entry.locked === true;
+                      
                       return (
                         <tr key={entry.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm text-gray-800">
                             {getEmployeeName(entry.employeeId)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
-                            {task ? `${task.task} - ${task.dutyName}` : 'Unknown Task'}
+                            {task ? task.task : 'Unknown Task'}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
-                            {entry.quantity}
+                            {isTicketTask ? 'N/A' : `${entry.quantity}`}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             {entry.remarks || 'None'}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             {format(new Date(entry.recordedAt), 'MMM dd, yyyy HH:mm')}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {isLocked ? (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                <Lock className="h-3 w-3 mr-1" />
+                                Locked
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <FileText className="h-3 w-3 mr-1" />
+                                Active
+                              </span>
+                            )}
                           </td>
                         </tr>
                       )

@@ -6,10 +6,11 @@ import { ArrowLeft, Calendar, ClipboardList } from "lucide-react";
 import { useSchedules, Schedule, ScheduleItem } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import StrippingWorkEntryForm from "@/components/StrippingWorkEntryForm";
+import { toast } from "sonner";
 
 const WorkEntryPage = () => {
   const navigate = useNavigate();
-  const { schedules, workEntries, getWorkEntriesForEmployee } = useSchedules();
+  const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, isEmployeeEntryLocked } = useSchedules();
   const { employees } = useEmployees();
   
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
@@ -36,6 +37,11 @@ const WorkEntryPage = () => {
     ? employeeWorkEntries.filter(entry => entry.scheduleItemId === selectedScheduleItem.id)
     : [];
 
+  // Check if the employee is locked for the selected task
+  const isLocked = selectedScheduleId && selectedScheduleItem && selectedEmployeeId
+    ? isEmployeeEntryLocked(selectedScheduleId, selectedScheduleItem.id, selectedEmployeeId)
+    : false;
+
   // Get the employee name
   const getEmployeeName = (employeeId: string) => {
     const employee = employees.find(e => e.id === employeeId);
@@ -52,6 +58,34 @@ const WorkEntryPage = () => {
   // Handle refresh after entry is added
   const handleEntryAdded = () => {
     // Form reset is handled by the component submitting the entry
+  };
+
+  // Handle form submission for regular entries
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedScheduleId || !selectedScheduleItem || !selectedEmployeeId) {
+      toast.error("Please select all required fields");
+      return;
+    }
+    
+    // Check if employee is locked for this task
+    if (isLocked) {
+      toast.error("This worker has been locked for this task");
+      return;
+    }
+    
+    addWorkEntry({
+      scheduleId: selectedScheduleId,
+      scheduleItemId: selectedScheduleItem.id,
+      employeeId: selectedEmployeeId,
+      quantity,
+      remarks
+    });
+    
+    // Reset form after submission
+    setQuantity(0);
+    setRemarks("");
   };
 
   return (
@@ -168,46 +202,56 @@ const WorkEntryPage = () => {
                   <div className="glass-card p-4">
                     <h3 className="text-md font-medium mb-4">Regular Work Entry for {getEmployeeName(selectedEmployeeId)}</h3>
                     
-                    <form className="space-y-4">
-                      <div>
-                        <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
-                          Quantity <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="number"
-                          id="quantity"
-                          min="0"
-                          step="0.01"
-                          className="input-field w-full mt-1"
-                          value={quantity}
-                          onChange={(e) => setQuantity(Number(e.target.value))}
-                          required
-                        />
+                    {isLocked ? (
+                      <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <p className="text-gray-700">This worker's entries have been locked. No further entries can be recorded.</p>
                       </div>
-                      
-                      <div>
-                        <label htmlFor="remarks" className="block text-sm font-medium text-gray-700">
-                          Remarks (optional)
-                        </label>
-                        <textarea
-                          id="remarks"
-                          rows={3}
-                          className="input-field w-full mt-1"
-                          placeholder="Add any remarks about this entry"
-                          value={remarks}
-                          onChange={(e) => setRemarks(e.target.value)}
-                        ></textarea>
-                      </div>
-                      
-                      <div className="flex justify-end">
-                        <button
-                          type="submit"
-                          className="btn-primary"
-                        >
-                          Record Entry
-                        </button>
-                      </div>
-                    </form>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                          <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                            Quantity {selectedScheduleItem.task.toLowerCase() !== "tickets" ? <span className="text-red-500">*</span> : "(N/A for tickets)"}
+                          </label>
+                          {selectedScheduleItem.task.toLowerCase() === "tickets" ? (
+                            <div className="input-field w-full mt-1 bg-gray-100">N/A</div>
+                          ) : (
+                            <input
+                              type="number"
+                              id="quantity"
+                              min="0"
+                              step="0.01"
+                              className="input-field w-full mt-1"
+                              value={quantity}
+                              onChange={(e) => setQuantity(Number(e.target.value))}
+                              required
+                            />
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="remarks" className="block text-sm font-medium text-gray-700">
+                            Remarks (optional)
+                          </label>
+                          <textarea
+                            id="remarks"
+                            rows={3}
+                            className="input-field w-full mt-1"
+                            placeholder="Add any remarks about this entry"
+                            value={remarks}
+                            onChange={(e) => setRemarks(e.target.value)}
+                          ></textarea>
+                        </div>
+                        
+                        <div className="flex justify-end">
+                          <button
+                            type="submit"
+                            className="btn-primary"
+                          >
+                            Record Entry
+                          </button>
+                        </div>
+                      </form>
+                    )}
 
                     {/* Display existing entries if any */}
                     {scheduleItemEntries.length > 0 && (
@@ -235,7 +279,7 @@ const WorkEntryPage = () => {
                                     {new Date(entry.recordedAt).toLocaleString()}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {entry.quantity}
+                                    {selectedScheduleItem?.task.toLowerCase() === "tickets" ? "N/A" : `${entry.quantity}`}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {entry.remarks || '-'}

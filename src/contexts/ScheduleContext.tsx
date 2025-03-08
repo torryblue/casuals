@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
@@ -35,7 +34,11 @@ export type WorkEntry = {
     scaleNumber: number;
     inValue: number;
     outValue?: number;
+    sticks?: number;
   }[];
+  locked?: boolean;
+  totalSticks?: number;
+  fm?: number;
 };
 
 type ScheduleContextType = {
@@ -49,6 +52,8 @@ type ScheduleContextType = {
   isEmployeeAssignedForDate: (employeeId: string, date: string) => boolean;
   updateSchedule: (scheduleId: string, updatedItems: ScheduleItem[]) => void;
   deleteSchedule: (scheduleId: string) => void;
+  lockEmployeeEntry: (scheduleId: string, scheduleItemId: string, employeeId: string) => void;
+  isEmployeeEntryLocked: (scheduleId: string, scheduleItemId: string, employeeId: string) => boolean;
   isLoading: boolean;
 };
 
@@ -135,9 +140,17 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const generateId = (prefix: string) => {
+  const generateId = (prefix: string, task?: string) => {
     const timestamp = new Date().getTime().toString().slice(-6);
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    
+    if (task && prefix === 'SCH') {
+      // Format: SCH-TASKNAME-TIMESTAMP-RANDOM
+      // Take only the first 4 characters of task name to keep it concise
+      const taskPrefix = task.substring(0, 4).toUpperCase();
+      return `${prefix}-${taskPrefix}-${timestamp}-${random}`;
+    }
+    
     return `${prefix}-${timestamp}-${random}`;
   };
 
@@ -150,10 +163,70 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const isEmployeeEntryLocked = (scheduleId: string, scheduleItemId: string, employeeId: string) => {
+    return workEntries.some(entry => 
+      entry.scheduleId === scheduleId && 
+      entry.scheduleItemId === scheduleItemId && 
+      entry.employeeId === employeeId &&
+      entry.locked === true
+    );
+  };
+
+  const lockEmployeeEntry = async (scheduleId: string, scheduleItemId: string, employeeId: string) => {
+    setIsLoading(true);
+    
+    try {
+      // Find all entries for this employee on this schedule item
+      const entriesToLock = workEntries.filter(
+        entry => entry.scheduleId === scheduleId && 
+                entry.scheduleItemId === scheduleItemId && 
+                entry.employeeId === employeeId
+      );
+      
+      if (entriesToLock.length === 0) {
+        throw new Error('No entries found to lock');
+      }
+      
+      // Update each entry in the database
+      for (const entry of entriesToLock) {
+        const { error } = await supabase
+          .from('work_entries')
+          .update({ locked: true })
+          .eq('id', entry.id);
+        
+        if (error) {
+          console.error('Error locking entry:', error);
+          throw error;
+        }
+      }
+      
+      // Update local state
+      setWorkEntries(prev => 
+        prev.map(entry => 
+          (entry.scheduleId === scheduleId && 
+           entry.scheduleItemId === scheduleItemId && 
+           entry.employeeId === employeeId)
+            ? { ...entry, locked: true }
+            : entry
+        )
+      );
+      
+      toast.success('Worker entries have been locked');
+    } catch (error) {
+      console.error('Error locking employee entries:', error);
+      toast.error('Failed to lock entries');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const addSchedule = async (date: string, items: Omit<ScheduleItem, 'id'>[]) => {
     setIsLoading(true);
     
     try {
+      // Find a representative task for the schedule ID
+      const mainTask = items.length > 0 ? items[0].task : 'GEN';
+      
       // Map items and add ID
       const scheduleItems = items.map(item => ({
         ...item,
@@ -161,7 +234,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       }));
       
       const newSchedule = {
-        id: generateId('SCH'),
+        id: generateId('SCH', mainTask),
         date,
         items: scheduleItems,
         createdAt: new Date()
@@ -207,10 +280,23 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      // Check if employee is locked for this task
+      if (isEmployeeEntryLocked(entry.scheduleId, entry.scheduleItemId, entry.employeeId)) {
+        toast.error('This worker has been locked for this task');
+        return;
+      }
+      
+      // Calculate total sticks if applicable
+      let totalSticks = undefined;
+      if (entry.scaleEntries && entry.scaleEntries.some(se => se.sticks !== undefined)) {
+        totalSticks = entry.scaleEntries.reduce((sum, se) => sum + (se.sticks || 0), 0);
+      }
+      
       const newEntry = {
         ...entry,
         id: generateId('WORK'),
-        recordedAt: new Date()
+        recordedAt: new Date(),
+        totalSticks
       };
       
       console.log('Adding work entry with data:', newEntry);
@@ -224,7 +310,10 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         quantity: newEntry.quantity,
         remarks: newEntry.remarks,
         recordedat: newEntry.recordedAt.toISOString(), // lowercase to match DB schema
-        scaleentries: newEntry.scaleEntries // lowercase to match DB schema
+        scaleentries: newEntry.scaleEntries, // lowercase to match DB schema
+        locked: newEntry.locked || false,
+        totalsticks: totalSticks,
+        fm: newEntry.fm
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
@@ -368,6 +457,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       isEmployeeAssignedForDate,
       updateSchedule,
       deleteSchedule,
+      lockEmployeeEntry,
+      isEmployeeEntryLocked,
       isLoading
     }}>
       {children}

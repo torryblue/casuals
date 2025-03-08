@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { ArrowLeft, Check, Plus, Trash } from "lucide-react";
+import { ArrowLeft, Check, Plus, Trash, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const EditSchedulePage = () => {
@@ -78,17 +79,28 @@ const EditSchedulePage = () => {
     const schedule = getScheduleById(id || '');
     if (!schedule) return;
     
+    // Check if adding an employee
     if (isSelected) {
-      const isEmployeeInCurrentItem = schedule.items.some(item => 
-        item.id === scheduleItems[index].id && item.employeeIds.includes(employeeId)
-      );
+      // Check if the employee is already assigned to this specific item (in case of editing)
+      const isEmployeeInCurrentItem = scheduleItems[index].employeeIds.includes(employeeId);
       
-      const isEmployeeAssignedToDifferentItem = !isEmployeeInCurrentItem && 
-        isEmployeeAssignedForDate(employeeId, scheduleDate);
-      
-      if (isEmployeeAssignedToDifferentItem) {
-        toast.error("This employee is already assigned to another duty for this date.");
-        return;
+      // Only check for other assignments if the employee is not already in this item
+      if (!isEmployeeInCurrentItem) {
+        // Check if employee is assigned to another item in this schedule
+        const isEmployeeAssignedToAnotherItemInSameSchedule = scheduleItems.some((item, idx) => 
+          idx !== index && item.employeeIds.includes(employeeId)
+        );
+        
+        // Check if employee is assigned to another schedule on the same date
+        const isEmployeeAssignedToAnotherSchedule = isEmployeeAssignedForDate(employeeId, scheduleDate) && 
+          !schedule.items.some(item => item.employeeIds.includes(employeeId));
+        
+        if (isEmployeeAssignedToAnotherItemInSameSchedule || isEmployeeAssignedToAnotherSchedule) {
+          toast.error("This employee is already assigned to another duty for this date.", {
+            description: "Employees cannot be assigned to multiple tasks on the same day."
+          });
+          return;
+        }
       }
     }
     
@@ -135,10 +147,40 @@ const EditSchedulePage = () => {
       }
     }
     
+    // Check for duplicate employee assignments across items
+    const employeeAssignments = new Map<string, number>();
+    let hasDuplicateAssignments = false;
+    
+    scheduleItems.forEach((item, itemIndex) => {
+      item.employeeIds.forEach(empId => {
+        if (employeeAssignments.has(empId)) {
+          const existingItemIndex = employeeAssignments.get(empId);
+          if (existingItemIndex !== itemIndex) {
+            hasDuplicateAssignments = true;
+            toast.error(`Employee ${getEmployeeName(empId)} is assigned to multiple tasks in this schedule.`, {
+              description: "Employees cannot be assigned to multiple tasks on the same day."
+            });
+          }
+        } else {
+          employeeAssignments.set(empId, itemIndex);
+        }
+      });
+    });
+    
+    if (hasDuplicateAssignments) {
+      return;
+    }
+    
     console.log('Updating schedule with items:', JSON.stringify(scheduleItems, null, 2));
     
     updateSchedule(id || '', scheduleItems);
     navigate('/master/schedules');
+  };
+  
+  // Helper function to get employee name by ID
+  const getEmployeeName = (id: string) => {
+    const employee = employees.find(emp => emp.id === id);
+    return employee ? `${employee.name} ${employee.surname}` : 'Unknown';
   };
   
   return (
@@ -155,6 +197,13 @@ const EditSchedulePage = () => {
         </div>
         
         <div className="glass-card p-6 element-transition">
+          <div className="p-3 mb-4 bg-amber-50 rounded-md border border-amber-200 flex items-start">
+            <AlertCircle className="h-5 w-5 text-amber-500 mr-2 mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-amber-700">
+              Note: Employees cannot be assigned to multiple tasks on the same day. Any attempt to assign an employee to multiple tasks will be prevented.
+            </p>
+          </div>
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-700">
@@ -348,20 +397,35 @@ const EditSchedulePage = () => {
                     </label>
                     <div className="border rounded-md p-2 bg-white max-h-40 overflow-y-auto">
                       <div className="space-y-1">
-                        {employees.map(employee => (
-                          <div key={employee.id} className="flex items-center">
-                            <input
-                              type="checkbox"
-                              id={`employee-${index}-${employee.id}`}
-                              checked={item.employeeIds.includes(employee.id)}
-                              onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
-                              className="mr-2"
-                            />
-                            <label htmlFor={`employee-${index}-${employee.id}`} className="text-sm">
-                              {employee.name} {employee.surname}
-                            </label>
-                          </div>
-                        ))}
+                        {employees.map(employee => {
+                          // Check if employee is assigned elsewhere for this date
+                          const isEmployeeAssignedElsewhere = 
+                            !item.employeeIds.includes(employee.id) && 
+                            (isEmployeeAssignedForDate(employee.id, scheduleDate) || 
+                             scheduleItems.some((otherItem, otherIndex) => 
+                               index !== otherIndex && otherItem.employeeIds.includes(employee.id)
+                             ));
+                          
+                          return (
+                            <div key={employee.id} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                id={`employee-${index}-${employee.id}`}
+                                checked={item.employeeIds.includes(employee.id)}
+                                onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
+                                className="mr-2"
+                                disabled={isEmployeeAssignedElsewhere}
+                              />
+                              <label 
+                                htmlFor={`employee-${index}-${employee.id}`} 
+                                className={`text-sm ${isEmployeeAssignedElsewhere ? 'text-gray-400' : ''}`}
+                              >
+                                {employee.name} {employee.surname}
+                                {isEmployeeAssignedElsewhere && " (assigned elsewhere)"}
+                              </label>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>

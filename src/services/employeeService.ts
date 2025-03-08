@@ -75,6 +75,7 @@ export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<{ suc
       errorMessage = error.details;
     }
     
+    toast.error(`Failed to add employee: ${errorMessage}`);
     return { success: false };
   }
 };
@@ -95,6 +96,7 @@ export const updateEmployee = async (id: string, updatedData: Omit<Employee, 'id
     }
     
     console.log('Employee updated successfully');
+    toast.success('Employee updated successfully');
     return true;
   } catch (error: any) {
     console.error('Error updating employee:', error);
@@ -119,6 +121,7 @@ export const removeEmployee = async (id: string): Promise<boolean> => {
     }
     
     console.log('Employee removed successfully');
+    toast.success('Employee removed successfully');
     return true;
   } catch (error: any) {
     console.error('Error removing employee:', error);

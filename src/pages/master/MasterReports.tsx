@@ -4,7 +4,7 @@ import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Search, User, BarChart2 } from "lucide-react";
+import { ArrowLeft, Search, User, BarChart2, FileText, Scale } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -14,6 +14,7 @@ const MasterReports = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
+  const [selectedTask, setSelectedTask] = useState<string>("");
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().setDate(1)).toISOString().split('T')[0], // First day of current month
     end: new Date().toISOString().split('T')[0] // Today
@@ -25,15 +26,30 @@ const MasterReports = () => {
     return null;
   }
 
-  // Filter work entries based on selected employee and date range
+  // Get all unique tasks from schedules
+  const allTasks = Array.from(
+    new Set(
+      schedules.flatMap(schedule => 
+        schedule.items.map(item => item.task)
+      )
+    )
+  ).sort();
+
+  // Filter work entries based on selected employee, task, and date range
   const filteredWorkEntries = workEntries.filter(entry => {
     const entryDate = new Date(entry.recordedAt);
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
     endDate.setHours(23, 59, 59, 999); // End of the day
     
+    // Get the task for this entry
+    const schedule = schedules.find(s => s.id === entry.scheduleId);
+    const scheduleItem = schedule?.items.find(item => item.id === entry.scheduleItemId);
+    const taskMatches = !selectedTask || (scheduleItem?.task === selectedTask);
+    
     return (
       (!selectedEmployee || entry.employeeId === selectedEmployee) &&
+      taskMatches &&
       entryDate >= startDate &&
       entryDate <= endDate
     );
@@ -60,13 +76,22 @@ const MasterReports = () => {
   // Helper function to get schedule details by ID
   const getScheduleDetails = (scheduleId: string, itemId: string) => {
     const schedule = schedules.find(s => s.id === scheduleId);
-    if (!schedule) return { date: 'Unknown', task: 'Unknown' };
+    if (!schedule) return { date: 'Unknown', task: 'Unknown', targetMass: undefined };
     
     const item = schedule.items.find(i => i.id === itemId);
     return {
       date: schedule.date,
-      task: item?.task || 'Unknown'
+      task: item?.task || 'Unknown',
+      targetMass: item?.targetMass
     };
+  };
+
+  // Helper function to format the quantity or display N/A for tickets
+  const formatQuantity = (entry, details) => {
+    if (details.task.toLowerCase() === 'tickets') {
+      return 'N/A';
+    }
+    return `${entry.quantity}`;
   };
 
   return (
@@ -83,7 +108,7 @@ const MasterReports = () => {
         </div>
 
         <div className="glass-card p-4 element-transition">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             {/* Employee filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
@@ -96,6 +121,23 @@ const MasterReports = () => {
                 {employees.map(employee => (
                   <option key={employee.id} value={employee.id}>
                     {employee.name} {employee.surname}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Task filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Task</label>
+              <select
+                className="input-field w-full"
+                value={selectedTask}
+                onChange={(e) => setSelectedTask(e.target.value)}
+              >
+                <option value="">All Tasks</option>
+                {allTasks.map(task => (
+                  <option key={task} value={task}>
+                    {task}
                   </option>
                 ))}
               </select>
@@ -162,18 +204,48 @@ const MasterReports = () => {
                           <tr className="bg-gray-50">
                             <th className="px-4 py-2 text-left">Date</th>
                             <th className="px-4 py-2 text-left">Task</th>
-                            <th className="px-4 py-2 text-left">Quantity</th>
+                            {selectedTask?.toLowerCase() === "stripping" || !selectedTask ? (
+                              <>
+                                <th className="px-4 py-2 text-left">Target Mass</th>
+                                <th className="px-4 py-2 text-left">Final Mass</th>
+                                <th className="px-4 py-2 text-left">Variance</th>
+                                <th className="px-4 py-2 text-left">Total Sticks</th>
+                                <th className="px-4 py-2 text-left">FM</th>
+                              </>
+                            ) : (
+                              <th className="px-4 py-2 text-left">Quantity</th>
+                            )}
                             <th className="px-4 py-2 text-left">Remarks</th>
                           </tr>
                         </thead>
                         <tbody>
                           {entries.map((entry) => {
                             const details = getScheduleDetails(entry.scheduleId, entry.scheduleItemId);
+                            const isStripping = details.task.toLowerCase() === "stripping";
+                            
                             return (
                               <tr key={entry.id} className="border-t border-gray-100">
                                 <td className="px-4 py-2">{details.date}</td>
                                 <td className="px-4 py-2">{details.task}</td>
-                                <td className="px-4 py-2">{entry.quantity}</td>
+                                
+                                {isStripping || !selectedTask ? (
+                                  <>
+                                    <td className="px-4 py-2">{details.targetMass || 'N/A'}</td>
+                                    <td className="px-4 py-2">{entry.quantity}</td>
+                                    <td className="px-4 py-2">
+                                      {details.targetMass ? (
+                                        <span className={entry.quantity >= (details.targetMass || 0) ? 'text-green-600' : 'text-red-600'}>
+                                          {entry.quantity - (details.targetMass || 0)}
+                                        </span>
+                                      ) : 'N/A'}
+                                    </td>
+                                    <td className="px-4 py-2">{entry.totalSticks || 'N/A'}</td>
+                                    <td className="px-4 py-2">{entry.fm || 'N/A'}</td>
+                                  </>
+                                ) : (
+                                  <td className="px-4 py-2">{formatQuantity(entry, details)}</td>
+                                )}
+                                
                                 <td className="px-4 py-2">{entry.remarks}</td>
                               </tr>
                             );
