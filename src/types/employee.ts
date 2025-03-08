@@ -16,7 +16,7 @@ export type NewEmployee = Omit<Employee, 'id'>;
 export type EmployeeContextType = {
   employees: Employee[];
   addEmployee: (employee: NewEmployee) => Promise<boolean>;
-  updateEmployee: (id: string, updatedData: NewEmployee) => void;
-  removeEmployee: (id: string) => void;
+  updateEmployee: (id: string, updatedData: NewEmployee) => Promise<void>;
+  removeEmployee: (id: string) => Promise<void>;
   isLoading: boolean;
 };

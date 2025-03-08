@@ -16,9 +16,9 @@ const EmployeesPage = () => {
   
   // Filter employees based on search term
   const filteredEmployees = employees.filter(employee => 
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.idno.toLowerCase().includes(searchTerm.toLowerCase())
+    (employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (employee.surname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+    (employee.idno?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
   );
 
   return (

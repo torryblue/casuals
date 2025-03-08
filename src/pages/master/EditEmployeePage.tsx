@@ -14,12 +14,12 @@ const EditEmployeePage = () => {
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
-    idNo: "",  // Changed to camelCase to match Supabase schema
+    idno: "",  // Changed from idNo to idno
     contact: "",
     address: "",
     gender: "Male",
-    nextOfKinName: "",  // Changed to camelCase to match Supabase schema
-    nextOfKinContact: ""  // Changed to camelCase to match Supabase schema
+    nextofkinname: "",  // Changed from nextOfKinName to nextofkinname
+    nextofkincontact: ""  // Changed from nextOfKinContact to nextofkincontact
   });
   
   useEffect(() => {
@@ -27,14 +27,14 @@ const EditEmployeePage = () => {
       const employee = employees.find(emp => emp.id === id);
       if (employee) {
         setFormData({
-          name: employee.name,
-          surname: employee.surname,
-          idNo: employee.idNo,
-          contact: employee.contact,
-          address: employee.address,
-          gender: employee.gender,
-          nextOfKinName: employee.nextOfKinName,
-          nextOfKinContact: employee.nextOfKinContact
+          name: employee.name || "",
+          surname: employee.surname || "",
+          idno: employee.idno || "",
+          contact: employee.contact || "",
+          address: employee.address || "",
+          gender: employee.gender || "Male",
+          nextofkinname: employee.nextofkinname || "",
+          nextofkincontact: employee.nextofkincontact || ""
         });
       } else {
         toast.error("Employee not found");
@@ -51,11 +51,15 @@ const EditEmployeePage = () => {
     }));
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (id) {
-      updateEmployee(id, formData);
-      navigate('/master/employees');
+      try {
+        await updateEmployee(id, formData);
+        navigate('/master/employees');
+      } catch (error) {
+        console.error("Error updating employee:", error);
+      }
     }
   };
 
@@ -88,7 +92,7 @@ const EditEmployeePage = () => {
                     required
                     className="input-field w-full"
                     placeholder="Enter first name"
-                    value={formData.name}
+                    value={formData.name || ""}
                     onChange={handleChange}
                   />
                 </div>
@@ -104,23 +108,23 @@ const EditEmployeePage = () => {
                     required
                     className="input-field w-full"
                     placeholder="Enter surname"
-                    value={formData.surname}
+                    value={formData.surname || ""}
                     onChange={handleChange}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="idNo" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="idno" className="block text-sm font-medium text-gray-700">
                     ID Number <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="idNo"
-                    name="idNo"
+                    id="idno"
+                    name="idno"
                     type="text"
                     required
                     className="input-field w-full"
                     placeholder="Enter ID number"
-                    value={formData.idNo}
+                    value={formData.idno || ""}
                     onChange={handleChange}
                   />
                 </div>
@@ -136,7 +140,7 @@ const EditEmployeePage = () => {
                     required
                     className="input-field w-full"
                     placeholder="Enter contact number"
-                    value={formData.contact}
+                    value={formData.contact || ""}
                     onChange={handleChange}
                   />
                 </div>
@@ -155,7 +159,7 @@ const EditEmployeePage = () => {
                     required
                     className="input-field w-full"
                     placeholder="Enter address"
-                    value={formData.address}
+                    value={formData.address || ""}
                     onChange={handleChange}
                   />
                 </div>
@@ -169,7 +173,7 @@ const EditEmployeePage = () => {
                     name="gender"
                     required
                     className="input-field w-full"
-                    value={formData.gender}
+                    value={formData.gender || "Male"}
                     onChange={handleChange}
                   >
                     <option value="Male">Male</option>
@@ -179,33 +183,33 @@ const EditEmployeePage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="nextOfKinName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="nextofkinname" className="block text-sm font-medium text-gray-700">
                     Next of Kin Name <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="nextOfKinName"
-                    name="nextOfKinName"
+                    id="nextofkinname"
+                    name="nextofkinname"
                     type="text"
                     required
                     className="input-field w-full"
                     placeholder="Enter next of kin name"
-                    value={formData.nextOfKinName}
+                    value={formData.nextofkinname || ""}
                     onChange={handleChange}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="nextOfKinContact" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="nextofkincontact" className="block text-sm font-medium text-gray-700">
                     Next of Kin Contact <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="nextOfKinContact"
-                    name="nextOfKinContact"
+                    id="nextofkincontact"
+                    name="nextofkincontact"
                     type="tel"
                     required
                     className="input-field w-full"
                     placeholder="Enter next of kin contact"
-                    value={formData.nextOfKinContact}
+                    value={formData.nextofkincontact || ""}
                     onChange={handleChange}
                   />
                 </div>

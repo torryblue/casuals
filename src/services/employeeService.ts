@@ -52,24 +52,10 @@ export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<{ suc
       return { success: false };
     }
     
-    // Ensure field names match exactly with the database schema
-    const employeeRecord = {
-      id: newEmployee.id,
-      name: newEmployee.name,
-      surname: newEmployee.surname,
-      idno: newEmployee.idno,
-      contact: newEmployee.contact,
-      address: newEmployee.address,
-      gender: newEmployee.gender,
-      nextofkinname: newEmployee.nextofkinname,
-      nextofkincontact: newEmployee.nextofkincontact
-    };
-    
-    console.log('Final employee record to insert:', employeeRecord);
-    
+    // Insert the employee directly, no need to rename fields since they should already match
     const { error, data } = await supabase
       .from('employees')
-      .insert([employeeRecord])
+      .insert([newEmployee])
       .select();
     
     if (error) {
@@ -96,18 +82,23 @@ export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<{ suc
 // Update an existing employee
 export const updateEmployee = async (id: string, updatedData: Omit<Employee, 'id'>): Promise<boolean> => {
   try {
+    console.log('Updating employee with ID:', id, 'Data:', updatedData);
+    
     const { error } = await supabase
       .from('employees')
       .update(updatedData)
       .eq('id', id);
     
     if (error) {
+      console.error('Supabase error updating employee:', error);
       throw error;
     }
     
+    console.log('Employee updated successfully');
     return true;
   } catch (error: any) {
     console.error('Error updating employee:', error);
+    toast.error(`Failed to update employee: ${error.message || 'Unknown error'}`);
     return false;
   }
 };
@@ -115,18 +106,23 @@ export const updateEmployee = async (id: string, updatedData: Omit<Employee, 'id
 // Delete an employee
 export const removeEmployee = async (id: string): Promise<boolean> => {
   try {
+    console.log('Removing employee with ID:', id);
+    
     const { error } = await supabase
       .from('employees')
       .delete()
       .eq('id', id);
     
     if (error) {
+      console.error('Supabase error removing employee:', error);
       throw error;
     }
     
+    console.log('Employee removed successfully');
     return true;
   } catch (error: any) {
     console.error('Error removing employee:', error);
+    toast.error(`Failed to remove employee: ${error.message || 'Unknown error'}`);
     return false;
   }
 };

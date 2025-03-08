@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
-import { addEmployee as addEmployeeService, fetchEmployees } from '@/services/employeeService';
+import { addEmployee as addEmployeeService, fetchEmployees, updateEmployee as updateEmployeeService, removeEmployee as removeEmployeeService } from '@/services/employeeService';
 
 export type Employee = {
   id: string;
@@ -19,6 +19,8 @@ export type Employee = {
 type EmployeeContextType = {
   employees: Employee[];
   addEmployee: (employee: Omit<Employee, 'id'>) => Promise<void>;
+  updateEmployee: (id: string, updatedData: Omit<Employee, 'id'>) => Promise<void>;
+  removeEmployee: (id: string) => Promise<void>;
   isLoading: boolean;
 };
 
@@ -79,10 +81,60 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateEmployee = async (id: string, updatedData: Omit<Employee, 'id'>) => {
+    setIsLoading(true);
+    try {
+      console.log("Updating employee with ID:", id, "Data:", updatedData);
+      
+      const success = await updateEmployeeService(id, updatedData);
+      
+      if (success) {
+        // Update the local state
+        setEmployees(prev => 
+          prev.map(emp => emp.id === id ? { ...emp, ...updatedData, id } : emp)
+        );
+        toast.success(`Employee ${updatedData.name} ${updatedData.surname} updated successfully`);
+      } else {
+        throw new Error("Failed to update employee");
+      }
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      toast.error(`Failed to update employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const removeEmployee = async (id: string) => {
+    setIsLoading(true);
+    try {
+      console.log("Removing employee with ID:", id);
+      
+      const success = await removeEmployeeService(id);
+      
+      if (success) {
+        // Remove from local state
+        setEmployees(prev => prev.filter(emp => emp.id !== id));
+        toast.success("Employee removed successfully");
+      } else {
+        throw new Error("Failed to remove employee");
+      }
+    } catch (error) {
+      console.error("Error removing employee:", error);
+      toast.error(`Failed to remove employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <EmployeeContext.Provider value={{
       employees,
       addEmployee,
+      updateEmployee,
+      removeEmployee,
       isLoading
     }}>
       {children}

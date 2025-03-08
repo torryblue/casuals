@@ -22,24 +22,24 @@ const MasterEmployeeList = () => {
 
   // Filter employees based on search term
   const filteredEmployees = employees.filter(employee => 
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.idNo.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.surname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    employee.idno?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDeleteEmployee = (id: string) => {
+  const handleDeleteEmployee = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this employee? This action cannot be undone.")) {
       setIsDeleting(true);
       
-      // Call the removeEmployee function from context
-      if (removeEmployee) {
-        removeEmployee(id);
-        toast.success("Employee deleted successfully");
-      } else {
+      try {
+        // Call the removeEmployee function from context
+        await removeEmployee(id);
+      } catch (error) {
+        console.error("Error deleting employee:", error);
         toast.error("Failed to delete employee");
+      } finally {
+        setIsDeleting(false);
       }
-      
-      setIsDeleting(false);
     }
   };
 
@@ -98,7 +98,7 @@ const MasterEmployeeList = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.contact}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.address}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.gender}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{employee.nextOfKinName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{employee.nextofkinname}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <div className="flex space-x-2">
                           <button 
