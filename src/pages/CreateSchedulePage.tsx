@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -31,7 +32,6 @@ const CreateSchedulePage = () => {
   const [scheduleItems, setScheduleItems] = useState([
     { 
       task: PREDEFINED_TASKS[0],
-      dutyName: "",
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
@@ -50,7 +50,6 @@ const CreateSchedulePage = () => {
   const handleAddItem = () => {
     setScheduleItems([...scheduleItems, { 
       task: PREDEFINED_TASKS[0],
-      dutyName: "",
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
@@ -149,13 +148,8 @@ const CreateSchedulePage = () => {
 
   const validateScheduleItems = () => {
     for (const item of scheduleItems) {
-      if (!item.dutyName.trim()) {
-        toast.error("Please provide a duty name for all items");
-        return false;
-      }
-      
       if (item.employeeIds.length === 0) {
-        toast.error(`Please assign at least one employee to the duty: ${item.dutyName}`);
+        toast.error(`Please assign at least one employee to the task: ${item.task}`);
         return false;
       }
     }
@@ -170,6 +164,10 @@ const CreateSchedulePage = () => {
     }
     
     setIsLoading(true);
+    
+    // Add console logging
+    console.log('Submitting schedule with date:', scheduleDate);
+    console.log('Schedule items:', JSON.stringify(scheduleItems, null, 2));
     
     addSchedule(scheduleDate, scheduleItems);
     
@@ -256,20 +254,6 @@ const CreateSchedulePage = () => {
                               </option>
                             ))}
                           </select>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="block text-xs font-medium text-gray-600">
-                            Duty Name
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            className="input-field w-full"
-                            placeholder="Enter duty name"
-                            value={item.dutyName}
-                            onChange={(e) => handleItemChange(index, "dutyName", e.target.value)}
-                          />
                         </div>
 
                         {item.task !== "Stripping" && 

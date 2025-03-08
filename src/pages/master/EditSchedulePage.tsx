@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -28,12 +27,6 @@ const EditSchedulePage = () => {
       }
     }
   }, [id, getScheduleById, navigate]);
-  
-  const handleDutyChange = (index: number, value: string) => {
-    const newItems = [...scheduleItems];
-    newItems[index].dutyName = value;
-    setScheduleItems(newItems);
-  };
   
   const handleTaskChange = (index: number, value: string) => {
     const newItems = [...scheduleItems];
@@ -85,14 +78,11 @@ const EditSchedulePage = () => {
     const schedule = getScheduleById(id || '');
     if (!schedule) return;
     
-    // For adding an employee, check if they're already assigned for this date
     if (isSelected) {
-      // Allow them to be added to the same schedule item they were already in
       const isEmployeeInCurrentItem = schedule.items.some(item => 
         item.id === scheduleItems[index].id && item.employeeIds.includes(employeeId)
       );
       
-      // Check if employee is assigned to a different item on this date
       const isEmployeeAssignedToDifferentItem = !isEmployeeInCurrentItem && 
         isEmployeeAssignedForDate(employeeId, scheduleDate);
       
@@ -120,7 +110,6 @@ const EditSchedulePage = () => {
     setScheduleItems(prev => [...prev, {
       id: `temp-${Date.now()}`,
       task: "",
-      dutyName: "",
       workers: 0,
       employeeIds: [],
       targetMass: 0,
@@ -134,9 +123,8 @@ const EditSchedulePage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate form
     for (const item of scheduleItems) {
-      if (!item.task || !item.dutyName || item.workers <= 0) {
+      if (!item.task || item.workers <= 0) {
         toast.error("Please fill in all required fields for each schedule item.");
         return;
       }
@@ -145,14 +133,10 @@ const EditSchedulePage = () => {
         toast.error("Please assign at least one employee to each schedule item.");
         return;
       }
-      
-      if (item.workers !== item.employeeIds.length) {
-        toast.error(`The number of workers (${item.workers}) must match the number of employees assigned (${item.employeeIds.length}).`);
-        return;
-      }
     }
     
-    // Update schedule
+    console.log('Updating schedule with items:', JSON.stringify(scheduleItems, null, 2));
+    
     updateSchedule(id || '', scheduleItems);
     navigate('/master/schedules');
   };
@@ -172,7 +156,6 @@ const EditSchedulePage = () => {
         
         <div className="glass-card p-6 element-transition">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Schedule date - read only since we don't want to change dates for existing schedules */}
             <div className="space-y-2">
               <label htmlFor="scheduleDate" className="block text-sm font-medium text-gray-700">
                 Schedule Date <span className="text-red-500">*</span>
@@ -187,7 +170,6 @@ const EditSchedulePage = () => {
               <p className="text-sm text-gray-500">Date cannot be changed for existing schedules.</p>
             </div>
             
-            {/* Schedule items */}
             <div className="space-y-4">
               <h2 className="text-lg font-medium text-gray-800">Tasks</h2>
               
@@ -220,19 +202,6 @@ const EditSchedulePage = () => {
                     
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Duty Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        className="input-field w-full"
-                        value={item.dutyName}
-                        onChange={(e) => handleDutyChange(index, e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
                         Number of Workers <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -245,7 +214,6 @@ const EditSchedulePage = () => {
                       />
                     </div>
                     
-                    {/* Task-specific fields */}
                     {item.task.toLowerCase() === "stripping" && (
                       <>
                         <div className="space-y-2">
@@ -374,7 +342,6 @@ const EditSchedulePage = () => {
                     )}
                   </div>
                   
-                  {/* Employee assignment */}
                   <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Assign Employees <span className="text-red-500">*</span>

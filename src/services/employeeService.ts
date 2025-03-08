@@ -41,6 +41,9 @@ export const addEmployee = async (employee: NewEmployee): Promise<{ success: boo
     
     console.log('Adding employee with data:', newEmployee);
     
+    // Explicitly log the structure of the insert operation
+    console.log('Inserting into employees table with data structure:', JSON.stringify(newEmployee, null, 2));
+    
     const { error, data } = await supabase
       .from('employees')
       .insert([newEmployee])
@@ -51,7 +54,7 @@ export const addEmployee = async (employee: NewEmployee): Promise<{ success: boo
       throw error;
     }
     
-    console.log('Employee added successfully:', data);
+    console.log('Employee added successfully, response data:', data);
     return { success: true, employee: newEmployee };
   } catch (error: any) {
     console.error('Error adding employee:', error);

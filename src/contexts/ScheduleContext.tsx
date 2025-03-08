@@ -2,12 +2,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
-import { Employee } from './EmployeeContext';
+import { Employee } from '@/types/employee';
 
 export type ScheduleItem = {
   id: string;
   task: string;
-  dutyName: string;
   workers: number;
   employeeIds: string[];
   targetMass?: number;
@@ -143,7 +142,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      const scheduleItems = items.map(item => ({
+      // Map items removing the 'dutyName' property and adding ID
+      const scheduleItems = items.map(({ dutyName, ...item }) => ({
         ...item,
         id: generateId('ITEM')
       }));
@@ -155,6 +155,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date()
       };
       
+      console.log('Creating schedule with data:', JSON.stringify(newSchedule, null, 2));
+      
       // Store the schedule in Supabase
       const { error } = await supabase
         .from('schedules')
@@ -164,6 +166,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         }]);
       
       if (error) {
+        console.error('Supabase error creating schedule:', error);
         throw error;
       }
       
