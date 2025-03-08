@@ -18,7 +18,7 @@ const EmployeesPage = () => {
   const filteredEmployees = employees.filter(employee => 
     employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     employee.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.idNo.toLowerCase().includes(searchTerm.toLowerCase())
+    employee.idno.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -80,7 +80,7 @@ const EmployeesPage = () => {
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.contact}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.address}</td>
                       <td className="px-4 py-3 text-sm text-gray-600">{employee.gender}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{employee.nextOfKinName}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{employee.nextofkinname}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -10,18 +9,18 @@ const CreateEmployeePage = () => {
   const navigate = useNavigate();
   const { addEmployee, isLoading } = useEmployees();
   const [submitInProgress, setSubmitInProgress] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
-    idNo: "",  // Changed to camelCase to match Supabase schema
+    idno: "",  // Changed to camelCase to match Supabase schema
     contact: "",
     address: "",
     gender: "Male",
-    nextOfKinName: "",  // Changed to camelCase to match Supabase schema
-    nextOfKinContact: ""  // Changed to camelCase to match Supabase schema
+    nextofkinname: "",  // Changed to camelCase to match Supabase schema
+    nextofkincontact: ""  // Changed to camelCase to match Supabase schema
   });
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -29,26 +28,22 @@ const CreateEmployeePage = () => {
       [name]: value
     }));
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Prevent double submissions
     if (submitInProgress || isLoading) return;
-    
+
     setSubmitInProgress(true);
-    
+
     try {
       console.log("Creating employee with data:", formData);
-      const success = await addEmployee(formData);
+      await addEmployee(formData);
       
-      if (success) {
-        console.log("Employee created successfully");
-        navigate('/employees');
-      } else {
-        console.error("Failed to create employee");
-        // Toast error is already handled inside addEmployee
-      }
+      // If we reach here without an error being thrown, consider it a success
+      console.log("Employee created successfully");
+      navigate('/employees');
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error("Something went wrong while creating the employee. Please try again.");
@@ -108,17 +103,17 @@ const CreateEmployeePage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="idNo" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="idno" className="block text-sm font-medium text-gray-700">
                     ID Number <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="idNo"
-                    name="idNo"
+                    id="idno"
+                    name="idno"
                     type="text"
                     required
                     className="input-field w-full"
                     placeholder="Enter ID number"
-                    value={formData.idNo}
+                    value={formData.idno}
                     onChange={handleChange}
                   />
                 </div>
@@ -177,33 +172,33 @@ const CreateEmployeePage = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="nextOfKinName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="nextofkinname" className="block text-sm font-medium text-gray-700">
                     Next of Kin Name <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="nextOfKinName"
-                    name="nextOfKinName"
+                    id="nextofkinname"
+                    name="nextofkinname"
                     type="text"
                     required
                     className="input-field w-full"
                     placeholder="Enter next of kin name"
-                    value={formData.nextOfKinName}
+                    value={formData.nextofkinname}
                     onChange={handleChange}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label htmlFor="nextOfKinContact" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="nextofkincontact" className="block text-sm font-medium text-gray-700">
                     Next of Kin Contact <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="nextOfKinContact"
-                    name="nextOfKinContact"
+                    id="nextofkincontact"
+                    name="nextofkincontact"
                     type="tel"
                     required
                     className="input-field w-full"
                     placeholder="Enter next of kin contact"
-                    value={formData.nextOfKinContact}
+                    value={formData.nextofkincontact}
                     onChange={handleChange}
                   />
                 </div>
@@ -213,12 +208,12 @@ const CreateEmployeePage = () => {
             <div className="pt-4 border-t flex justify-end">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || submitInProgress}
                 className={`btn-primary flex items-center ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
+                  (isLoading || submitInProgress) ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >
-                {isLoading ? (
+                {(isLoading || submitInProgress) ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
