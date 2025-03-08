@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from "sonner";
+import { supabase } from '@/lib/supabase';
+import { addEmployee as addEmployeeService, fetchEmployees } from '@/services/employeeService';
 
 export type Employee = {
   id: string;
@@ -15,7 +18,7 @@ export type Employee = {
 
 type EmployeeContextType = {
   employees: Employee[];
-  addEmployee: (employee: Omit<Employee, 'id'>) => void;
+  addEmployee: (employee: Omit<Employee, 'id'>) => Promise<void>;
   isLoading: boolean;
 };
 
@@ -25,6 +28,23 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Fetch employees when component mounts
+  useEffect(() => {
+    const getEmployees = async () => {
+      setIsLoading(true);
+      try {
+        const employeeData = await fetchEmployees();
+        setEmployees(employeeData);
+      } catch (error) {
+        console.error("Error fetching employees:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    getEmployees();
+  }, []);
+
   // Generate a unique worker ID with prefix WRK
   const generateWorkerId = () => {
     const timestamp = new Date().getTime().toString().slice(-6);
@@ -32,20 +52,31 @@ export const EmployeeProvider = ({ children }: { children: ReactNode }) => {
     return `WRK-${timestamp}-${random}`;
   };
 
-  const addEmployee = (employeeData: Omit<Employee, 'id'>) => {
+  const addEmployee = async (employeeData: Omit<Employee, 'id'>) => {
     setIsLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      console.log("Adding employee with data:", employeeData);
+      
       const newEmployee = {
         ...employeeData,
         id: generateWorkerId(),
       };
 
-      setEmployees(prev => [...prev, newEmployee]);
+      const result = await addEmployeeService(employeeData as any);
+      
+      if (result.success) {
+        setEmployees(prev => [...prev, result.employee as Employee]);
+        toast.success(`Employee ${employeeData.name} ${employeeData.surname} created successfully`);
+      } else {
+        throw new Error("Failed to add employee");
+      }
+    } catch (error) {
+      console.error("Error adding employee:", error);
+      toast.error(`Failed to create employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw error;
+    } finally {
       setIsLoading(false);
-      toast.success(`Employee ${employeeData.name} ${employeeData.surname} created successfully`);
-    }, 1000);
+    }
   };
 
   return (

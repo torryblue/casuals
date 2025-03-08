@@ -1,14 +1,14 @@
 
 export type Employee = {
   id: string;
-  name: string;
-  surname: string;
-  idNo: string;  
-  contact: string;
-  address: string;
-  gender: string;
-  nextOfKinName: string;
-  nextOfKinContact: string;
+  name: string | null;
+  surname: string | null;
+  idno: string | null;  
+  contact: string | null;
+  address: string | null;
+  gender: string | null;
+  nextofkinname: string | null;
+  nextofkincontact: string | null;
 };
 
 export type NewEmployee = Omit<Employee, 'id'>;

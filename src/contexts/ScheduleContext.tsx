@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
-import { Employee } from '@/types/employee';
+import { Employee } from '@/contexts/EmployeeContext';
 
 export type ScheduleItem = {
   id: string;
@@ -69,19 +69,22 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      console.log('Fetching schedules from Supabase');
       const { data, error } = await supabase
         .from('schedules')
         .select('*');
       
       if (error) {
+        console.error('Supabase error fetching schedules:', error);
         throw error;
       }
       
       if (data) {
+        console.log('Fetched schedules:', data);
         // Convert date strings back to Date objects
         const formattedSchedules = data.map(schedule => ({
           ...schedule,
-          createdAt: new Date(schedule.createdAt)
+          createdAt: new Date(schedule.createdat) // Note: lowercase 'createdat' matches DB schema
         }));
         
         setSchedules(formattedSchedules as Schedule[]);
@@ -98,19 +101,28 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
+      console.log('Fetching work entries from Supabase');
       const { data, error } = await supabase
         .from('work_entries')
         .select('*');
       
       if (error) {
+        console.error('Supabase error fetching work entries:', error);
         throw error;
       }
       
       if (data) {
-        // Convert date strings back to Date objects
+        console.log('Fetched work entries:', data);
+        // Convert date strings back to Date objects and map field names
         const formattedEntries = data.map(entry => ({
-          ...entry,
-          recordedAt: new Date(entry.recordedAt)
+          id: entry.id,
+          scheduleId: entry.scheduleid, // lowercase to match DB schema
+          scheduleItemId: entry.scheduleitemid, // lowercase to match DB schema
+          employeeId: entry.employeeid, // lowercase to match DB schema
+          quantity: entry.quantity,
+          remarks: entry.remarks,
+          recordedAt: new Date(entry.recordedat), // lowercase to match DB schema
+          scaleEntries: entry.scaleentries // lowercase to match DB schema
         }));
         
         setWorkEntries(formattedEntries as WorkEntry[]);
@@ -157,13 +169,20 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Creating schedule with data:', JSON.stringify(newSchedule, null, 2));
       
+      // Format the data to match DB schema column names
+      const scheduleRecord = {
+        id: newSchedule.id,
+        date: newSchedule.date,
+        items: scheduleItems, // This will be stored as JSONB
+        createdat: newSchedule.createdAt.toISOString() // lowercase to match DB schema
+      };
+      
+      console.log('Final schedule record to insert:', scheduleRecord);
+      
       // Store the schedule in Supabase
       const { error } = await supabase
         .from('schedules')
-        .insert([{
-          ...newSchedule,
-          createdAt: newSchedule.createdAt.toISOString() // Convert Date to string for Postgres
-        }]);
+        .insert([scheduleRecord]);
       
       if (error) {
         console.error('Supabase error creating schedule:', error);
@@ -194,15 +213,29 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         recordedAt: new Date()
       };
       
+      console.log('Adding work entry with data:', newEntry);
+      
+      // Format the data to match DB schema column names
+      const workEntryRecord = {
+        id: newEntry.id,
+        scheduleid: newEntry.scheduleId, // lowercase to match DB schema
+        scheduleitemid: newEntry.scheduleItemId, // lowercase to match DB schema
+        employeeid: newEntry.employeeId, // lowercase to match DB schema
+        quantity: newEntry.quantity,
+        remarks: newEntry.remarks,
+        recordedat: newEntry.recordedAt.toISOString(), // lowercase to match DB schema
+        scaleentries: newEntry.scaleEntries // lowercase to match DB schema
+      };
+      
+      console.log('Final work entry record to insert:', workEntryRecord);
+      
       // Store the work entry in Supabase
       const { error } = await supabase
         .from('work_entries')
-        .insert([{
-          ...newEntry,
-          recordedAt: newEntry.recordedAt.toISOString() // Convert Date to string for Postgres
-        }]);
+        .insert([workEntryRecord]);
       
       if (error) {
+        console.error('Supabase error adding work entry:', error);
         throw error;
       }
       
@@ -245,16 +278,24 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         items: updatedItems
       };
       
+      // Format the data to match DB schema column names
+      const scheduleRecord = {
+        id: updatedSchedule.id,
+        date: updatedSchedule.date,
+        items: updatedSchedule.items,
+        createdat: updatedSchedule.createdAt.toISOString() // lowercase to match DB schema
+      };
+      
+      console.log('Updating schedule with data:', scheduleRecord);
+      
       // Update the schedule in Supabase
       const { error } = await supabase
         .from('schedules')
-        .update({
-          ...updatedSchedule,
-          createdAt: updatedSchedule.createdAt.toISOString() // Convert Date to string for Postgres
-        })
+        .update(scheduleRecord)
         .eq('id', scheduleId);
       
       if (error) {
+        console.error('Supabase error updating schedule:', error);
         throw error;
       }
       
@@ -280,22 +321,26 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     
     try {
       // First delete all related work entries
+      console.log(`Deleting work entries for schedule ${scheduleId}`);
       const { error: entriesError } = await supabase
         .from('work_entries')
         .delete()
-        .eq('scheduleId', scheduleId);
+        .eq('scheduleid', scheduleId); // lowercase to match DB schema
       
       if (entriesError) {
+        console.error('Supabase error deleting work entries:', entriesError);
         throw entriesError;
       }
       
       // Then delete the schedule
+      console.log(`Deleting schedule ${scheduleId}`);
       const { error: scheduleError } = await supabase
         .from('schedules')
         .delete()
         .eq('id', scheduleId);
       
       if (scheduleError) {
+        console.error('Supabase error deleting schedule:', scheduleError);
         throw scheduleError;
       }
       

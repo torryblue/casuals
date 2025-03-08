@@ -9,17 +9,52 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Helper function to check if Supabase is reachable
 export const checkSupabaseConnection = async () => {
   try {
-    // Try a simple query to check connection
-    const { error } = await supabase.from('employees').select('count', { count: 'exact', head: true });
+    console.log('Testing Supabase connection...');
     
-    if (error) {
-      console.error('Supabase connection error:', error);
-      
-      // Additional diagnostic information
-      if (error.code === 'PGRST204') {
-        console.warn('Table or column might not exist. Please check your database schema.');
+    // Check if employees table exists
+    const { error: employeesError } = await supabase
+      .from('employees')
+      .select('count', { count: 'exact', head: true });
+    
+    if (employeesError) {
+      console.error('Employees table check failed:', employeesError);
+      if (employeesError.code === 'PGRST204') {
+        console.warn('Employees table might not exist. Please check your database schema.');
       }
+    } else {
+      console.log('Employees table check: OK');
+    }
+    
+    // Check if schedules table exists
+    const { error: schedulesError } = await supabase
+      .from('schedules')
+      .select('count', { count: 'exact', head: true });
       
+    if (schedulesError) {
+      console.error('Schedules table check failed:', schedulesError);
+      if (schedulesError.code === 'PGRST204') {
+        console.warn('Schedules table might not exist. Please check your database schema.');
+      }
+    } else {
+      console.log('Schedules table check: OK');
+    }
+    
+    // Check if work_entries table exists
+    const { error: entriesError } = await supabase
+      .from('work_entries')
+      .select('count', { count: 'exact', head: true });
+      
+    if (entriesError) {
+      console.error('Work entries table check failed:', entriesError);
+      if (entriesError.code === 'PGRST204') {
+        console.warn('Work entries table might not exist. Please check your database schema.');
+      }
+    } else {
+      console.log('Work entries table check: OK');
+    }
+    
+    // If any table check failed, return false
+    if (employeesError || schedulesError || entriesError) {
       return false;
     }
     

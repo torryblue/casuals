@@ -1,7 +1,7 @@
 
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
-import { Employee, NewEmployee } from '@/types/employee';
+import { Employee } from '@/contexts/EmployeeContext';
 
 // Generate a unique ID for new employees
 export const generateEmployeeId = (): string => {
@@ -11,11 +11,13 @@ export const generateEmployeeId = (): string => {
 // Fetch all employees from the database
 export const fetchEmployees = async (): Promise<Employee[]> => {
   try {
+    console.log('Fetching employees from Supabase');
     const { data, error } = await supabase
       .from('employees')
       .select('*');
     
     if (error) {
+      console.error('Supabase error fetching employees:', error);
       throw error;
     }
     
@@ -32,7 +34,7 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
 };
 
 // Add a new employee to the database
-export const addEmployee = async (employee: NewEmployee): Promise<{ success: boolean; employee?: Employee }> => {
+export const addEmployee = async (employee: Omit<Employee, 'id'>): Promise<{ success: boolean; employee?: Employee }> => {
   try {
     const newEmployee = {
       id: generateEmployeeId(),
@@ -44,9 +46,30 @@ export const addEmployee = async (employee: NewEmployee): Promise<{ success: boo
     // Explicitly log the structure of the insert operation
     console.log('Inserting into employees table with data structure:', JSON.stringify(newEmployee, null, 2));
     
+    // Check if Supabase client is initialized
+    if (!supabase) {
+      console.error('Supabase client is not initialized');
+      return { success: false };
+    }
+    
+    // Ensure field names match exactly with the database schema
+    const employeeRecord = {
+      id: newEmployee.id,
+      name: newEmployee.name,
+      surname: newEmployee.surname,
+      idno: newEmployee.idno,
+      contact: newEmployee.contact,
+      address: newEmployee.address,
+      gender: newEmployee.gender,
+      nextofkinname: newEmployee.nextofkinname,
+      nextofkincontact: newEmployee.nextofkincontact
+    };
+    
+    console.log('Final employee record to insert:', employeeRecord);
+    
     const { error, data } = await supabase
       .from('employees')
-      .insert([newEmployee])
+      .insert([employeeRecord])
       .select();
     
     if (error) {
@@ -71,7 +94,7 @@ export const addEmployee = async (employee: NewEmployee): Promise<{ success: boo
 };
 
 // Update an existing employee
-export const updateEmployee = async (id: string, updatedData: NewEmployee): Promise<boolean> => {
+export const updateEmployee = async (id: string, updatedData: Omit<Employee, 'id'>): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('employees')

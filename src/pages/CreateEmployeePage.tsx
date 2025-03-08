@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -13,12 +14,12 @@ const CreateEmployeePage = () => {
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
-    idno: "",  // Changed to camelCase to match Supabase schema
+    idno: "",  // Changed to lowercase to match Supabase schema
     contact: "",
     address: "",
     gender: "Male",
-    nextofkinname: "",  // Changed to camelCase to match Supabase schema
-    nextofkincontact: ""  // Changed to camelCase to match Supabase schema
+    nextofkinname: "",  // Changed to lowercase to match Supabase schema
+    nextofkincontact: ""  // Changed to lowercase to match Supabase schema
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
