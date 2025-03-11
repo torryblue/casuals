@@ -129,9 +129,9 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
           remarks: entry.remarks,
           recordedAt: new Date(entry.recordedat), // lowercase to match DB schema
           scaleEntries: entry.scaleentries, // lowercase to match DB schema
-          locked: entry.locked,
           totalSticks: entry.totalsticks, // lowercase to match DB schema
-          fm: entry.fm
+          fm: entry.fm,
+          locked: entry.locked // moved to match DB order
         }));
         
         setWorkEntries(formattedEntries as WorkEntry[]);
@@ -305,7 +305,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Adding work entry with data:', newEntry);
       
-      // Format the data to match DB schema column names
+      // Format the data to match DB schema column names and order
       const workEntryRecord = {
         id: newEntry.id,
         scheduleid: newEntry.scheduleId, // lowercase to match DB schema
@@ -315,9 +315,9 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         remarks: newEntry.remarks,
         recordedat: newEntry.recordedAt.toISOString(), // lowercase to match DB schema
         scaleentries: newEntry.scaleEntries, // lowercase to match DB schema
-        locked: newEntry.locked || false,
         totalsticks: totalSticks, // lowercase to match DB schema
-        fm: newEntry.fm
+        fm: newEntry.fm,
+        locked: newEntry.locked || false // moved to match DB order
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);

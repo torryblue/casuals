@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useSchedules, WorkEntry } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
@@ -42,21 +41,16 @@ const StrippingWorkEntryForm = ({
   const [remarks, setRemarks] = useState("");
   const [fm, setFm] = useState<number>(0);
 
-  // Find employee details
   const employee = employees.find(emp => emp.id === employeeId);
   
-  // Check if the employee is locked for this task
   const isLocked = isEmployeeEntryLocked(scheduleId, scheduleItemId, employeeId);
 
-  // Calculate totals with whole numbers
   const totalInScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.inValue || 0), 0));
   const totalOutScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0));
   const totalSticks = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0));
-  const finalMass = totalOutScale; // Final mass is the sum of output scale values
+  const outScaleMass = totalOutScale;
 
-  // Handle scale value change
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
-    // Round to whole number
     const roundedValue = Math.round(value);
     
     const updatedEntries = [...scaleEntries];
@@ -64,7 +58,6 @@ const StrippingWorkEntryForm = ({
     setScaleEntries(updatedEntries);
   };
 
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -72,13 +65,12 @@ const StrippingWorkEntryForm = ({
       scheduleId,
       scheduleItemId,
       employeeId,
-      quantity: finalMass, // Using the total output as the quantity (whole number)
+      quantity: outScaleMass,
       remarks,
       scaleEntries,
       fm
     });
     
-    // Reset form after submission
     setScaleEntries(
       Array.from({ length: numberOfScales }, (_, i) => ({
         scaleNumber: i + 1,
@@ -90,11 +82,9 @@ const StrippingWorkEntryForm = ({
     setRemarks("");
     setFm(0);
     
-    // Notify parent component
     onEntryAdded();
   };
 
-  // Handle locking employee entries
   const handleLockEntries = () => {
     if (window.confirm("Are you sure you want to lock this worker's entries? This cannot be undone.")) {
       lockEmployeeEntry(scheduleId, scheduleItemId, employeeId);
@@ -218,14 +208,14 @@ const StrippingWorkEntryForm = ({
               <div>
                 <div className="p-3 bg-green-50 rounded-md">
                   <span className="block text-xs text-gray-600">Out Scale Mass:</span>
-                  <span className="font-medium">{finalMass} kg</span>
+                  <span className="font-medium">{outScaleMass} kg</span>
                 </div>
               </div>
               <div>
                 <div className="p-3 bg-orange-50 rounded-md">
                   <span className="block text-xs text-gray-600">Variance:</span>
-                  <span className={`font-medium ${finalMass >= targetMass ? 'text-green-600' : 'text-red-600'}`}>
-                    {(finalMass - targetMass)} kg
+                  <span className={`font-medium ${outScaleMass >= targetMass ? 'text-green-600' : 'text-red-600'}`}>
+                    {(outScaleMass - targetMass)} kg
                   </span>
                 </div>
               </div>
@@ -281,7 +271,6 @@ const StrippingWorkEntryForm = ({
           </form>
         )}
 
-        {/* Display existing entries if any */}
         {existingEntries.length > 0 && (
           <div className="mt-6">
             <h4 className="text-sm font-medium mb-3">Previous Entries</h4>
