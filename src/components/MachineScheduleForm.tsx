@@ -65,8 +65,8 @@ const MachineScheduleForm = ({
         <input
           type="number"
           min="0"
-          step="1" // Changed from 0.1 to 1 for whole numbers
-          className="input-field w-full"
+          step="1"
+          className="input-field w-full appearance-none"
           value={machineTargetMass}
           onChange={handleTargetMassChange}
           placeholder="Enter target mass in kg"

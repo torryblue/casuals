@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -9,6 +8,8 @@ import StrippingWorkEntryForm from "@/components/StrippingWorkEntryForm";
 import { toast } from "sonner";
 
 const WorkEntryPage = () => {
+  // ... keep existing code (state variables, hooks, and component initialization)
+  
   const navigate = useNavigate();
   const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, isEmployeeEntryLocked } = useSchedules();
   const { employees } = useEmployees();
@@ -18,6 +19,7 @@ const WorkEntryPage = () => {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [quantity, setQuantity] = useState<number>(0);
   const [remarks, setRemarks] = useState<string>("");
+  const [formComplete, setFormComplete] = useState(false);
   
   // Get the selected schedule object
   const selectedSchedule = schedules.find(s => s.id === selectedScheduleId);
@@ -41,6 +43,17 @@ const WorkEntryPage = () => {
   const isLocked = selectedScheduleId && selectedScheduleItem && selectedEmployeeId
     ? isEmployeeEntryLocked(selectedScheduleId, selectedScheduleItem.id, selectedEmployeeId)
     : false;
+
+  // Check if the regular form is complete (for auto-save)
+  useEffect(() => {
+    if (selectedScheduleItem && selectedEmployeeId) {
+      const isTicketTask = selectedScheduleItem.task.toLowerCase() === "tickets";
+      const hasQuantity = isTicketTask || (quantity > 0);
+      setFormComplete(hasQuantity);
+    } else {
+      setFormComplete(false);
+    }
+  }, [selectedScheduleItem, selectedEmployeeId, quantity]);
 
   // Get the employee name
   const getEmployeeName = (employeeId: string) => {
@@ -87,6 +100,17 @@ const WorkEntryPage = () => {
     setQuantity(0);
     setRemarks("");
   };
+
+  // Auto-submit when form is complete
+  useEffect(() => {
+    if (formComplete && !isLocked && selectedScheduleItem?.task.toLowerCase() !== "stripping") {
+      const timer = setTimeout(() => {
+        handleSubmit(new Event('submit') as unknown as React.FormEvent);
+      }, 1000); // 1 second delay before auto-submission
+      
+      return () => clearTimeout(timer);
+    }
+  }, [formComplete, isLocked, selectedScheduleItem]);
 
   return (
     <AppLayout>
@@ -220,7 +244,7 @@ const WorkEntryPage = () => {
                               id="quantity"
                               min="0"
                               step="0.01"
-                              className="input-field w-full mt-1"
+                              className="input-field w-full mt-1 appearance-none"
                               value={quantity}
                               onChange={(e) => setQuantity(Number(e.target.value))}
                               required
@@ -243,9 +267,15 @@ const WorkEntryPage = () => {
                         </div>
                         
                         <div className="flex justify-end">
+                          {formComplete && (
+                            <div className="text-sm text-green-600 italic mr-4 flex items-center">
+                              Entry will be saved automatically
+                            </div>
+                          )}
                           <button
                             type="submit"
                             className="btn-primary"
+                            style={{ display: formComplete ? 'none' : 'block' }}
                           >
                             Record Entry
                           </button>

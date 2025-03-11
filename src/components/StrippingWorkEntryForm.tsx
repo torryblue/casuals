@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useSchedules, WorkEntry } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
@@ -40,6 +41,7 @@ const StrippingWorkEntryForm = ({
   );
   const [remarks, setRemarks] = useState("");
   const [fm, setFm] = useState<number>(0);
+  const [formComplete, setFormComplete] = useState(false);
 
   const employee = employees.find(emp => emp.id === employeeId);
   
@@ -49,6 +51,17 @@ const StrippingWorkEntryForm = ({
   const totalOutScale = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0));
   const totalSticks = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0));
   const outScaleMass = totalOutScale;
+
+  useEffect(() => {
+    // Check if all required scale fields are filled
+    const isComplete = scaleEntries.every(entry => 
+      entry.inValue !== undefined && 
+      entry.outValue !== undefined && 
+      entry.sticks !== undefined
+    ) && fm !== undefined;
+    
+    setFormComplete(isComplete);
+  }, [scaleEntries, fm]);
 
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
     const roundedValue = Math.round(value);
@@ -68,7 +81,8 @@ const StrippingWorkEntryForm = ({
       quantity: outScaleMass,
       remarks,
       scaleEntries,
-      fm
+      fm,
+      totalSticks
     });
     
     setScaleEntries(
@@ -150,7 +164,7 @@ const StrippingWorkEntryForm = ({
                           type="number"
                           step="1"
                           min="0"
-                          className="input-field w-full"
+                          className="input-field w-full appearance-none"
                           value={entry.inValue || ""}
                           onChange={(e) => handleScaleValueChange(index, 'inValue', parseFloat(e.target.value) || 0)}
                           required
@@ -161,7 +175,7 @@ const StrippingWorkEntryForm = ({
                           type="number"
                           step="1"
                           min="0"
-                          className="input-field w-full"
+                          className="input-field w-full appearance-none"
                           value={entry.outValue || ""}
                           onChange={(e) => handleScaleValueChange(index, 'outValue', parseFloat(e.target.value) || 0)}
                           required
@@ -172,7 +186,7 @@ const StrippingWorkEntryForm = ({
                           type="number"
                           step="1"
                           min="0"
-                          className="input-field w-full"
+                          className="input-field w-full appearance-none"
                           value={entry.sticks || ""}
                           onChange={(e) => handleScaleValueChange(index, 'sticks', parseFloat(e.target.value) || 0)}
                           required
@@ -237,7 +251,7 @@ const StrippingWorkEntryForm = ({
                   id="fm"
                   step="1"
                   min="0"
-                  className="input-field w-full mt-1"
+                  className="input-field w-full mt-1 appearance-none"
                   value={fm}
                   onChange={(e) => setFm(Number(e.target.value))}
                   required
@@ -260,13 +274,15 @@ const StrippingWorkEntryForm = ({
             </div>
             
             <div className="mt-4 flex justify-end">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn-primary"
-              >
-                {isLoading ? 'Saving...' : 'Record Entry'}
-              </button>
+              {formComplete && (
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="btn-primary"
+                >
+                  {isLoading ? 'Saving...' : 'Record Entry'}
+                </button>
+              )}
             </div>
           </form>
         )}

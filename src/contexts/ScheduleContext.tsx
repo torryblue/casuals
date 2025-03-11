@@ -37,9 +37,9 @@ export type WorkEntry = {
     outValue?: number;
     sticks?: number;
   }[];
-  locked?: boolean;
   totalSticks?: number;
   fm?: number;
+  locked?: boolean;
 };
 
 type ScheduleContextType = {
@@ -300,7 +300,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         ...entry,
         id: generateId('WORK'),
         recordedAt: new Date(),
-        totalSticks
+        totalSticks: totalSticks || entry.totalSticks // Use provided totalSticks or calculate it
       };
       
       console.log('Adding work entry with data:', newEntry);
@@ -315,9 +315,9 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         remarks: newEntry.remarks,
         recordedat: newEntry.recordedAt.toISOString(), // lowercase to match DB schema
         scaleentries: newEntry.scaleEntries, // lowercase to match DB schema
-        totalsticks: totalSticks, // lowercase to match DB schema
+        totalsticks: newEntry.totalSticks, // lowercase to match DB schema
         fm: newEntry.fm,
-        locked: newEntry.locked || false // moved to match DB order
+        locked: newEntry.locked || false // last field in the database schema
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
