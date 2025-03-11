@@ -42,6 +42,7 @@ const StrippingWorkEntryForm = ({
   const [remarks, setRemarks] = useState("");
   const [fm, setFm] = useState<number>(0);
   const [formComplete, setFormComplete] = useState(false);
+  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const employee = employees.find(emp => emp.id === employeeId);
   
@@ -52,34 +53,55 @@ const StrippingWorkEntryForm = ({
   const totalSticks = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0));
   const outScaleMass = totalOutScale;
 
-  useEffect(() => {
-    // Check if all required scale fields are filled
-    const isComplete = scaleEntries.every(entry => 
-      entry.inValue !== undefined && 
-      entry.outValue !== undefined && 
-      entry.sticks !== undefined
-    ) && fm !== undefined;
-    
-    setFormComplete(isComplete);
-  }, [scaleEntries, fm]);
-
-  // Auto-submit when form is complete
-  useEffect(() => {
-    if (formComplete && !isLocked) {
-      const timer = setTimeout(() => {
-        handleSubmit(new Event('submit') as unknown as React.FormEvent);
-      }, 1000); // 1 second delay before auto-submission
-      
-      return () => clearTimeout(timer);
+  // Auto-save when input changes
+  const autoSaveEntry = (updatedScaleEntries: typeof scaleEntries, updatedFm: number) => {
+    // Clear any existing timeout to prevent multiple submissions
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
     }
-  }, [formComplete, isLocked]);
+    
+    const timeout = setTimeout(() => {
+      console.log("Auto-saving stripping entry");
+      addWorkEntry({
+        scheduleId,
+        scheduleItemId,
+        employeeId,
+        quantity: Math.round(updatedScaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0)),
+        remarks,
+        scaleEntries: updatedScaleEntries,
+        fm: updatedFm,
+        totalSticks: Math.round(updatedScaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0))
+      });
+      
+      toast.success("Entry saved automatically");
+      onEntryAdded();
+    }, 1500); // 1.5 second delay
+    
+    setAutoSaveTimeout(timeout);
+  };
 
+  // Handle scale value change and auto-save
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
     const roundedValue = Math.round(value);
     
     const updatedEntries = [...scaleEntries];
     updatedEntries[scaleIndex][field] = roundedValue;
     setScaleEntries(updatedEntries);
+    
+    // Only auto-save if not locked and there's a valid value
+    if (!isLocked && roundedValue !== undefined) {
+      autoSaveEntry(updatedEntries, fm);
+    }
+  };
+
+  // Handle FM value change and auto-save
+  const handleFmChange = (value: number) => {
+    setFm(value);
+    
+    // Only auto-save if not locked and there's a valid scale entry
+    if (!isLocked && scaleEntries.some(entry => entry.outValue !== undefined)) {
+      autoSaveEntry(scaleEntries, value);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -269,7 +291,7 @@ const StrippingWorkEntryForm = ({
                   min="0"
                   className="input-field w-full mt-1 appearance-none"
                   value={fm}
-                  onChange={(e) => setFm(Number(e.target.value))}
+                  onChange={(e) => handleFmChange(Number(e.target.value))}
                   required
                 />
               </div>
@@ -290,19 +312,9 @@ const StrippingWorkEntryForm = ({
             </div>
             
             <div className="mt-4 flex justify-end">
-              {formComplete ? (
-                <div className="text-sm text-green-600 italic mr-4 flex items-center">
-                  Entry will be saved automatically
-                </div>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary"
-                >
-                  {isLoading ? 'Saving...' : 'Record Entry'}
-                </button>
-              )}
+              <div className="text-sm text-green-600 italic mr-4 flex items-center">
+                Entries are saved automatically as you type
+              </div>
             </div>
           </form>
         )}

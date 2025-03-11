@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -83,15 +84,19 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   
-  /* Remove number input spinners */
+  /* Enhanced CSS to remove number input spinners */
+  /* For Webkit browsers like Chrome, Safari */
   input[type="number"]::-webkit-inner-spin-button,
   input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+    display: none;
   }
   
+  /* For Firefox */
   input[type="number"] {
-    -moz-appearance: textfield; /* Firefox */
+    -moz-appearance: textfield;
+    appearance: textfield;
   }
 }
 
