@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -8,8 +9,6 @@ import StrippingWorkEntryForm from "@/components/StrippingWorkEntryForm";
 import { toast } from "sonner";
 
 const WorkEntryPage = () => {
-  // ... keep existing code (state variables, hooks, and component initialization)
-  
   const navigate = useNavigate();
   const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, isEmployeeEntryLocked } = useSchedules();
   const { employees } = useEmployees();
@@ -99,6 +98,8 @@ const WorkEntryPage = () => {
     // Reset form after submission
     setQuantity(0);
     setRemarks("");
+    
+    toast.success("Work entry recorded successfully");
   };
 
   // Auto-submit when form is complete
@@ -267,18 +268,18 @@ const WorkEntryPage = () => {
                         </div>
                         
                         <div className="flex justify-end">
-                          {formComplete && (
+                          {formComplete ? (
                             <div className="text-sm text-green-600 italic mr-4 flex items-center">
                               Entry will be saved automatically
                             </div>
+                          ) : (
+                            <button
+                              type="submit"
+                              className="btn-primary"
+                            >
+                              Record Entry
+                            </button>
                           )}
-                          <button
-                            type="submit"
-                            className="btn-primary"
-                            style={{ display: formComplete ? 'none' : 'block' }}
-                          >
-                            Record Entry
-                          </button>
                         </div>
                       </form>
                     )}

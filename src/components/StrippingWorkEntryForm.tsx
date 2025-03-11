@@ -63,6 +63,17 @@ const StrippingWorkEntryForm = ({
     setFormComplete(isComplete);
   }, [scaleEntries, fm]);
 
+  // Auto-submit when form is complete
+  useEffect(() => {
+    if (formComplete && !isLocked) {
+      const timer = setTimeout(() => {
+        handleSubmit(new Event('submit') as unknown as React.FormEvent);
+      }, 1000); // 1 second delay before auto-submission
+      
+      return () => clearTimeout(timer);
+    }
+  }, [formComplete, isLocked]);
+
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
     const roundedValue = Math.round(value);
     
@@ -73,6 +84,11 @@ const StrippingWorkEntryForm = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formComplete) {
+      toast.error("Please fill all required fields");
+      return;
+    }
     
     addWorkEntry({
       scheduleId,
@@ -274,7 +290,11 @@ const StrippingWorkEntryForm = ({
             </div>
             
             <div className="mt-4 flex justify-end">
-              {formComplete && (
+              {formComplete ? (
+                <div className="text-sm text-green-600 italic mr-4 flex items-center">
+                  Entry will be saved automatically
+                </div>
+              ) : (
                 <button
                   type="submit"
                   disabled={isLoading}

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
@@ -131,7 +130,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
           scaleEntries: entry.scaleentries, // lowercase to match DB schema
           totalSticks: entry.totalsticks, // lowercase to match DB schema
           fm: entry.fm,
-          locked: entry.locked // moved to match DB order
+          locked: entry.locked
         }));
         
         setWorkEntries(formattedEntries as WorkEntry[]);
@@ -305,7 +304,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Adding work entry with data:', newEntry);
       
-      // Format the data to match DB schema column names and order
+      // Format the data to match DB schema column names
       const workEntryRecord = {
         id: newEntry.id,
         scheduleid: newEntry.scheduleId, // lowercase to match DB schema
@@ -317,7 +316,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         scaleentries: newEntry.scaleEntries, // lowercase to match DB schema
         totalsticks: newEntry.totalSticks, // lowercase to match DB schema
         fm: newEntry.fm,
-        locked: newEntry.locked || false // last field in the database schema
+        locked: newEntry.locked || false
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
