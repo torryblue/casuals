@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
@@ -127,7 +128,10 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
           quantity: entry.quantity,
           remarks: entry.remarks,
           recordedAt: new Date(entry.recordedat), // lowercase to match DB schema
-          scaleEntries: entry.scaleentries // lowercase to match DB schema
+          scaleEntries: entry.scaleentries, // lowercase to match DB schema
+          locked: entry.locked,
+          totalSticks: entry.totalsticks, // lowercase to match DB schema
+          fm: entry.fm
         }));
         
         setWorkEntries(formattedEntries as WorkEntry[]);
@@ -312,7 +316,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         recordedat: newEntry.recordedAt.toISOString(), // lowercase to match DB schema
         scaleentries: newEntry.scaleEntries, // lowercase to match DB schema
         locked: newEntry.locked || false,
-        totalsticks: totalSticks,
+        totalsticks: totalSticks, // lowercase to match DB schema
         fm: newEntry.fm
       };
       

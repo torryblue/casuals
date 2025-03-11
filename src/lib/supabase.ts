@@ -39,7 +39,7 @@ export const checkSupabaseConnection = async () => {
       console.log('Schedules table check: OK');
     }
     
-    // Check if work_entries table exists
+    // Check if work_entries table exists and check column names
     const { error: entriesError } = await supabase
       .from('work_entries')
       .select('count', { count: 'exact', head: true });
@@ -51,6 +51,21 @@ export const checkSupabaseConnection = async () => {
       }
     } else {
       console.log('Work entries table check: OK');
+      
+      // Log column structure for debugging
+      try {
+        const { data: columnInfo, error: columnError } = await supabase.rpc('get_column_names', { 
+          table_name: 'work_entries' 
+        });
+        
+        if (columnError) {
+          console.error('Failed to get column info:', columnError);
+        } else {
+          console.log('Work entries columns:', columnInfo);
+        }
+      } catch (e) {
+        console.log('Could not fetch column info (requires create_column_info_function.sql to be run)');
+      }
     }
     
     // If any table check failed, return false
