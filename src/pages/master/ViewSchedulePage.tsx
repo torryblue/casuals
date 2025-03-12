@@ -4,17 +4,20 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { ArrowLeft, Calendar, User, Lock, FileText } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ArrowLeft, Calendar, User, Lock, FileText, Unlock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 const ViewSchedulePage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getScheduleById, workEntries, isEmployeeEntryLocked } = useSchedules();
+  const { getScheduleById, workEntries, isEmployeeEntryLocked, unlockEmployeeEntry } = useSchedules();
   const { employees } = useEmployees();
+  const { user } = useAuth();
   
   const [schedule, setSchedule] = useState<any>(null);
+  const [isUnlocking, setIsUnlocking] = useState(false);
   
   useEffect(() => {
     if (id) {
@@ -39,6 +42,26 @@ const ViewSchedulePage = () => {
 
   const checkIfLocked = (scheduleItemId: string, employeeId: string) => {
     return isEmployeeEntryLocked(id || '', scheduleItemId, employeeId);
+  };
+
+  const handleUnlockEntry = async (entry) => {
+    if (!user || user.role !== 'admin') {
+      toast.error("Only admins can unlock entries");
+      return;
+    }
+
+    setIsUnlocking(true);
+    try {
+      const success = await unlockEmployeeEntry(entry.scheduleId, entry.scheduleItemId, entry.employeeId);
+      if (success) {
+        toast.success(`Entry for ${getEmployeeName(entry.employeeId)} unlocked successfully`);
+      }
+    } catch (error) {
+      console.error("Error unlocking entry:", error);
+      toast.error("Failed to unlock entry");
+    } finally {
+      setIsUnlocking(false);
+    }
   };
 
   if (!schedule) {
@@ -229,10 +252,21 @@ const ViewSchedulePage = () => {
                           </td>
                           <td className="px-4 py-3 text-sm">
                             {isLocked ? (
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                <Lock className="h-3 w-3 mr-1" />
-                                Locked
-                              </span>
+                              user?.role === 'admin' ? (
+                                <button
+                                  onClick={() => handleUnlockEntry(entry)}
+                                  disabled={isUnlocking}
+                                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors"
+                                >
+                                  <Lock className="h-3 w-3 mr-1" />
+                                  Locked (Click to Unlock)
+                                </button>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  <Lock className="h-3 w-3 mr-1" />
+                                  Locked
+                                </span>
+                              )
                             ) : (
                               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                 <FileText className="h-3 w-3 mr-1" />
