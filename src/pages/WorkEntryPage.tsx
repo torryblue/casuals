@@ -4,13 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, ClipboardList } from "lucide-react";
 import { useSchedules, Schedule, ScheduleItem } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import StrippingWorkEntryForm from "@/components/StrippingWorkEntryForm";
 import { toast } from "sonner";
 
 const WorkEntryPage = () => {
   const navigate = useNavigate();
-  const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, isEmployeeEntryLocked } = useSchedules();
+  const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
   const { employees } = useEmployees();
+  const { user } = useAuth();
   
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<ScheduleItem | null>(null);
@@ -18,6 +20,14 @@ const WorkEntryPage = () => {
   const [quantity, setQuantity] = useState<number>(0);
   const [remarks, setRemarks] = useState<string>("");
   const [formComplete, setFormComplete] = useState(false);
+  
+  // Get the current date in YYYY-MM-DD format for filtering
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Filter schedules based on user role - admins see all, users see only today's
+  const visibleSchedules = user?.role === 'admin' 
+    ? schedules 
+    : schedules.filter(s => s.date === today);
   
   // Get the selected schedule object
   const selectedSchedule = schedules.find(s => s.id === selectedScheduleId);
@@ -95,11 +105,14 @@ const WorkEntryPage = () => {
       remarks
     });
     
+    // Lock the employee entries after saving
+    lockEmployeeEntry(selectedScheduleId, selectedScheduleItem.id, selectedEmployeeId);
+    
     // Reset form after submission
     setQuantity(0);
     setRemarks("");
     
-    toast.success("Work entry recorded successfully");
+    toast.success("Work entry recorded and locked successfully");
   };
 
   return (
@@ -118,6 +131,12 @@ const WorkEntryPage = () => {
         <div className="mb-6">
           <h2 className="text-lg font-medium text-gray-800 mb-4">Record Work Entry</h2>
           
+          {user?.role !== 'admin' && visibleSchedules.length === 0 && (
+            <div className="text-center p-4 bg-amber-50 rounded-lg mb-4">
+              <p className="text-amber-800">Only today's schedules ({today}) are available for recording entries.</p>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {/* Schedule Selection */}
             <div>
@@ -131,7 +150,7 @@ const WorkEntryPage = () => {
                 onChange={(e) => setSelectedScheduleId(e.target.value)}
               >
                 <option value="">-- Select a Schedule --</option>
-                {schedules.map((schedule) => (
+                {visibleSchedules.map((schedule) => (
                   <option key={schedule.id} value={schedule.id}>
                     {schedule.date} ({schedule.id})
                   </option>
@@ -285,6 +304,9 @@ const WorkEntryPage = () => {
                               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Remarks
                               </th>
+                              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Status
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
@@ -298,6 +320,13 @@ const WorkEntryPage = () => {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                   {entry.remarks || '-'}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                  {entry.locked ? (
+                                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Locked</span>
+                                  ) : (
+                                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Active</span>
+                                  )}
                                 </td>
                               </tr>
                             ))}
@@ -320,16 +349,23 @@ const WorkEntryPage = () => {
           )}
           
           {/* No schedules message */}
-          {schedules.length === 0 && (
+          {visibleSchedules.length === 0 && (
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">No schedules found. Create a schedule first.</p>
-              <button
-                onClick={() => navigate('/schedule/create')}
-                className="mt-3 btn-primary"
-              >
-                Create Schedule
-              </button>
+              <p className="text-gray-600">
+                {user?.role === 'admin' 
+                  ? "No schedules found. Create a schedule first."
+                  : `No schedules found for today (${today}). Please contact an administrator.`
+                }
+              </p>
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => navigate('/schedule/create')}
+                  className="mt-3 btn-primary"
+                >
+                  Create Schedule
+                </button>
+              )}
             </div>
           )}
         </div>
