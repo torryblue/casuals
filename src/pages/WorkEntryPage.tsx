@@ -47,11 +47,12 @@ const WorkEntryPage = () => {
     if (selectedScheduleItem && selectedEmployeeId) {
       const isTicketTask = selectedScheduleItem.task.toLowerCase() === "tickets";
       const hasQuantity = isTicketTask || (quantity > 0);
-      setFormComplete(hasQuantity);
+      const hasRemarks = remarks.trim() !== "";
+      setFormComplete(hasQuantity && hasRemarks);
     } else {
       setFormComplete(false);
     }
-  }, [selectedScheduleItem, selectedEmployeeId, quantity]);
+  }, [selectedScheduleItem, selectedEmployeeId, quantity, remarks]);
 
   // Get the employee name
   const getEmployeeName = (employeeId: string) => {
@@ -242,15 +243,16 @@ const WorkEntryPage = () => {
                       
                       <div>
                         <label htmlFor="remarks" className="block text-sm font-medium text-gray-700">
-                          Remarks (optional)
+                          Remarks <span className="text-red-500">*</span>
                         </label>
                         <textarea
                           id="remarks"
                           rows={3}
                           className="input-field w-full mt-1"
-                          placeholder="Add any remarks about this entry"
+                          placeholder="Add remarks about this entry"
                           value={remarks}
                           onChange={(e) => setRemarks(e.target.value)}
+                          required
                         ></textarea>
                       </div>
                       

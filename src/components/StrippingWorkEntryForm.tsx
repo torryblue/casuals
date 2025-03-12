@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useSchedules, WorkEntry } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { toast } from "sonner";
-import { Lock, Shield, Save } from "lucide-react";
+import { Lock, Shield, Save, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 
 type StrippingWorkEntryFormProps = {
   scheduleId: string;
@@ -42,6 +42,8 @@ const StrippingWorkEntryForm = ({
   const [remarks, setRemarks] = useState("");
   const [fm, setFm] = useState<number>(0);
   const [formComplete, setFormComplete] = useState(false);
+  const [savedProgress, setSavedProgress] = useState<any>(null);
+  const [hasSavedProgress, setHasSavedProgress] = useState(false);
 
   const employee = employees.find(emp => emp.id === employeeId);
   
@@ -52,6 +54,22 @@ const StrippingWorkEntryForm = ({
   const totalSticks = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0));
   const outScaleMass = totalOutScale;
 
+  // Load saved progress from localStorage on component mount
+  useEffect(() => {
+    const savedProgressKey = `stripping-progress-${scheduleId}-${scheduleItemId}-${employeeId}`;
+    const savedData = localStorage.getItem(savedProgressKey);
+    
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        setHasSavedProgress(true);
+        setSavedProgress(parsedData);
+      } catch (error) {
+        console.error("Error parsing saved progress:", error);
+      }
+    }
+  }, [scheduleId, scheduleItemId, employeeId]);
+
   // Check if the form is complete
   useEffect(() => {
     const allScalesFilled = scaleEntries.every(entry => 
@@ -61,9 +79,10 @@ const StrippingWorkEntryForm = ({
     );
     
     const hasFmValue = fm !== undefined;
+    const hasRemarks = remarks.trim() !== "";
     
-    setFormComplete(allScalesFilled && hasFmValue);
-  }, [scaleEntries, fm]);
+    setFormComplete(allScalesFilled && hasFmValue && hasRemarks);
+  }, [scaleEntries, fm, remarks]);
 
   // Handle scale value change
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
@@ -77,6 +96,42 @@ const StrippingWorkEntryForm = ({
   // Handle FM value change
   const handleFmChange = (value: number) => {
     setFm(value);
+  };
+
+  // Save progress to localStorage
+  const saveProgress = () => {
+    const progressData = {
+      scaleEntries,
+      remarks,
+      fm,
+      savedAt: new Date().toISOString()
+    };
+    
+    const savedProgressKey = `stripping-progress-${scheduleId}-${scheduleItemId}-${employeeId}`;
+    localStorage.setItem(savedProgressKey, JSON.stringify(progressData));
+    
+    toast.success("Progress saved successfully");
+    setHasSavedProgress(true);
+    setSavedProgress(progressData);
+  };
+
+  // Load saved progress
+  const loadProgress = () => {
+    if (savedProgress) {
+      setScaleEntries(savedProgress.scaleEntries);
+      setRemarks(savedProgress.remarks);
+      setFm(savedProgress.fm);
+      toast.success("Progress loaded successfully");
+    }
+  };
+
+  // Clear saved progress
+  const clearSavedProgress = () => {
+    const savedProgressKey = `stripping-progress-${scheduleId}-${scheduleItemId}-${employeeId}`;
+    localStorage.removeItem(savedProgressKey);
+    setHasSavedProgress(false);
+    setSavedProgress(null);
+    toast.success("Saved progress cleared");
   };
 
   // Save entries to database and lock
@@ -101,7 +156,7 @@ const StrippingWorkEntryForm = ({
     // Lock the employee entries
     lockEmployeeEntry(scheduleId, scheduleItemId, employeeId);
     
-    // Reset form
+    // Reset form and clear saved progress
     setScaleEntries(
       Array.from({ length: numberOfScales }, (_, i) => ({
         scaleNumber: i + 1,
@@ -112,6 +167,7 @@ const StrippingWorkEntryForm = ({
     );
     setRemarks("");
     setFm(0);
+    clearSavedProgress();
     
     onEntryAdded();
     toast.success("Work entry saved and locked successfully");
@@ -137,6 +193,44 @@ const StrippingWorkEntryForm = ({
           </div>
         ) : (
           <form className="space-y-4">
+            {/* Progress management buttons */}
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                className="px-3 py-1.5 flex items-center text-sm rounded-md text-white bg-blue-500 hover:bg-blue-600"
+                onClick={saveProgress}
+              >
+                <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
+                Save Progress
+              </button>
+              
+              {hasSavedProgress && (
+                <>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 flex items-center text-sm rounded-md text-white bg-green-500 hover:bg-green-600"
+                    onClick={loadProgress}
+                  >
+                    <ArrowUpFromLine className="h-3.5 w-3.5 mr-1.5" />
+                    Load Saved
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 flex items-center text-sm rounded-md text-white bg-red-500 hover:bg-red-600"
+                    onClick={clearSavedProgress}
+                  >
+                    Clear Saved
+                  </button>
+                </>
+              )}
+            </div>
+            
+            {hasSavedProgress && (
+              <div className="bg-blue-50 p-2 rounded-md text-sm text-blue-800">
+                Last saved: {new Date(savedProgress.savedAt).toLocaleString()}
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -246,7 +340,7 @@ const StrippingWorkEntryForm = ({
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="fm" className="block text-sm font-medium text-gray-700">
-                  FM Value
+                  FM Value <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="number"
@@ -262,15 +356,16 @@ const StrippingWorkEntryForm = ({
               
               <div>
                 <label htmlFor="remarks" className="block text-sm font-medium text-gray-700">
-                  Remarks (optional)
+                  Remarks <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   id="remarks"
                   rows={2}
                   className="input-field w-full mt-1"
-                  placeholder="Add any remarks about this entry"
+                  placeholder="Add remarks about this entry"
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
+                  required
                 ></textarea>
               </div>
             </div>

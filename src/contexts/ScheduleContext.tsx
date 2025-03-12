@@ -450,6 +450,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Unlock entries with admin override functionality
   const unlockEmployeeEntry = async (scheduleId: string, scheduleItemId: string, employeeId: string): Promise<boolean> => {
     setIsLoading(true);
     
@@ -462,7 +463,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       );
       
       if (entriesToUnlock.length === 0) {
-        throw new Error('No locked entries found');
+        toast.error('No locked entries found');
+        return false;
       }
       
       // Update each entry in the database
@@ -500,6 +502,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
+  // Get all locked employee entries, regardless of date
   const getLockedEmployeeEntries = () => {
     const lockedEntries: { 
       scheduleId: string; 
