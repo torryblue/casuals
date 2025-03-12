@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useSchedules, WorkEntry } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { toast } from "sonner";
-import { Lock, Shield } from "lucide-react";
+import { Lock, Shield, Save } from "lucide-react";
 
 type StrippingWorkEntryFormProps = {
   scheduleId: string;
@@ -24,7 +24,7 @@ const StrippingWorkEntryForm = ({
   onEntryAdded,
   existingEntries,
 }: StrippingWorkEntryFormProps) => {
-  const { addWorkEntry, isLoading, lockEmployeeEntry, isEmployeeEntryLocked } = useSchedules();
+  const { addWorkEntry, lockEmployeeEntry, isEmployeeEntryLocked } = useSchedules();
   const { employees } = useEmployees();
   const [scaleEntries, setScaleEntries] = useState<{ 
     scaleNumber: number; 
@@ -42,7 +42,6 @@ const StrippingWorkEntryForm = ({
   const [remarks, setRemarks] = useState("");
   const [fm, setFm] = useState<number>(0);
   const [formComplete, setFormComplete] = useState(false);
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const employee = employees.find(emp => emp.id === employeeId);
   
@@ -53,65 +52,41 @@ const StrippingWorkEntryForm = ({
   const totalSticks = Math.round(scaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0));
   const outScaleMass = totalOutScale;
 
-  // Auto-save when input changes
-  const autoSaveEntry = (updatedScaleEntries: typeof scaleEntries, updatedFm: number) => {
-    // Clear any existing timeout to prevent multiple submissions
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout);
-    }
+  // Check if the form is complete
+  useEffect(() => {
+    const allScalesFilled = scaleEntries.every(entry => 
+      entry.inValue !== undefined && 
+      entry.outValue !== undefined && 
+      entry.sticks !== undefined
+    );
     
-    const timeout = setTimeout(() => {
-      console.log("Auto-saving stripping entry");
-      addWorkEntry({
-        scheduleId,
-        scheduleItemId,
-        employeeId,
-        quantity: Math.round(updatedScaleEntries.reduce((sum, entry) => sum + (entry.outValue || 0), 0)),
-        remarks,
-        scaleEntries: updatedScaleEntries,
-        fm: updatedFm,
-        totalSticks: Math.round(updatedScaleEntries.reduce((sum, entry) => sum + (entry.sticks || 0), 0))
-      });
-      
-      toast.success("Entry saved automatically");
-      onEntryAdded();
-    }, 1500); // 1.5 second delay
+    const hasFmValue = fm !== undefined;
     
-    setAutoSaveTimeout(timeout);
-  };
+    setFormComplete(allScalesFilled && hasFmValue);
+  }, [scaleEntries, fm]);
 
-  // Handle scale value change and auto-save
+  // Handle scale value change
   const handleScaleValueChange = (scaleIndex: number, field: 'inValue' | 'outValue' | 'sticks', value: number) => {
     const roundedValue = Math.round(value);
     
     const updatedEntries = [...scaleEntries];
     updatedEntries[scaleIndex][field] = roundedValue;
     setScaleEntries(updatedEntries);
-    
-    // Only auto-save if not locked and there's a valid value
-    if (!isLocked && roundedValue !== undefined) {
-      autoSaveEntry(updatedEntries, fm);
-    }
   };
 
-  // Handle FM value change and auto-save
+  // Handle FM value change
   const handleFmChange = (value: number) => {
     setFm(value);
-    
-    // Only auto-save if not locked and there's a valid scale entry
-    if (!isLocked && scaleEntries.some(entry => entry.outValue !== undefined)) {
-      autoSaveEntry(scaleEntries, value);
-    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Save entries to database and lock
+  const handleSaveAndLock = () => {
     if (!formComplete) {
       toast.error("Please fill all required fields");
       return;
     }
     
+    // Add the work entry
     addWorkEntry({
       scheduleId,
       scheduleItemId,
@@ -123,6 +98,10 @@ const StrippingWorkEntryForm = ({
       totalSticks
     });
     
+    // Lock the employee entries
+    lockEmployeeEntry(scheduleId, scheduleItemId, employeeId);
+    
+    // Reset form
     setScaleEntries(
       Array.from({ length: numberOfScales }, (_, i) => ({
         scaleNumber: i + 1,
@@ -135,12 +114,7 @@ const StrippingWorkEntryForm = ({
     setFm(0);
     
     onEntryAdded();
-  };
-
-  const handleLockEntries = () => {
-    if (window.confirm("Are you sure you want to lock this worker's entries? This cannot be undone.")) {
-      lockEmployeeEntry(scheduleId, scheduleItemId, employeeId);
-    }
+    toast.success("Work entry saved and locked successfully");
   };
 
   return (
@@ -148,16 +122,6 @@ const StrippingWorkEntryForm = ({
       <div className="glass-card p-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-md font-medium">Stripping Work Entry for {employee?.name} {employee?.surname}</h3>
-          
-          {!isLocked && existingEntries.length > 0 && (
-            <button 
-              onClick={handleLockEntries}
-              className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-amber-100 text-amber-800 hover:bg-amber-200"
-            >
-              <Lock className="h-3.5 w-3.5 mr-1.5" />
-              Lock Entries
-            </button>
-          )}
           
           {isLocked && (
             <div className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-800">
@@ -172,7 +136,7 @@ const StrippingWorkEntryForm = ({
             <p className="text-gray-700">This worker's entries have been locked. No further entries can be recorded.</p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form className="space-y-4">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -312,9 +276,15 @@ const StrippingWorkEntryForm = ({
             </div>
             
             <div className="mt-4 flex justify-end">
-              <div className="text-sm text-green-600 italic mr-4 flex items-center">
-                Entries are saved automatically as you type
-              </div>
+              <button
+                type="button"
+                className={`px-4 py-2 flex items-center rounded-md text-white ${formComplete ? 'bg-torryblue-accent hover:bg-torryblue-accent/90' : 'bg-gray-300 cursor-not-allowed'}`}
+                onClick={handleSaveAndLock}
+                disabled={!formComplete}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save & Lock Entries
+              </button>
             </div>
           </form>
         )}

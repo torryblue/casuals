@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
 import { Employee } from '@/contexts/EmployeeContext';
@@ -127,5 +126,34 @@ export const removeEmployee = async (id: string): Promise<boolean> => {
     console.error('Error removing employee:', error);
     toast.error(`Failed to remove employee: ${error.message || 'Unknown error'}`);
     return false;
+  }
+};
+
+// Add a new function to get employee by ID
+export const getEmployeeById = async (id: string): Promise<Employee | null> => {
+  try {
+    console.log('Fetching employee with ID:', id);
+    
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error('Supabase error fetching employee:', error);
+      throw error;
+    }
+    
+    if (data) {
+      console.log('Fetched employee:', data);
+      return data as Employee;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching employee:', error);
+    toast.error('Failed to fetch employee details');
+    return null;
   }
 };

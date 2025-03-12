@@ -53,7 +53,9 @@ type ScheduleContextType = {
   updateSchedule: (scheduleId: string, updatedItems: ScheduleItem[]) => void;
   deleteSchedule: (scheduleId: string) => void;
   lockEmployeeEntry: (scheduleId: string, scheduleItemId: string, employeeId: string) => void;
+  unlockEmployeeEntry: (scheduleId: string, scheduleItemId: string, employeeId: string) => Promise<boolean>;
   isEmployeeEntryLocked: (scheduleId: string, scheduleItemId: string, employeeId: string) => boolean;
+  getLockedEmployeeEntries: () => { scheduleId: string; scheduleItemId: string; employeeId: string; date: string; task: string; employee: string }[];
   isLoading: boolean;
 };
 
@@ -448,6 +450,97 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const unlockEmployeeEntry = async (scheduleId: string, scheduleItemId: string, employeeId: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      // Find all entries for this employee on this schedule item
+      const entriesToUnlock = workEntries.filter(
+        entry => entry.scheduleId === scheduleId && 
+                entry.scheduleItemId === scheduleItemId && 
+                entry.employeeId === employeeId
+      );
+      
+      if (entriesToUnlock.length === 0) {
+        throw new Error('No locked entries found');
+      }
+      
+      // Update each entry in the database
+      for (const entry of entriesToUnlock) {
+        const { error } = await supabase
+          .from('work_entries')
+          .update({ locked: false })
+          .eq('id', entry.id);
+        
+        if (error) {
+          console.error('Error unlocking entry:', error);
+          throw error;
+        }
+      }
+      
+      // Update local state
+      setWorkEntries(prev => 
+        prev.map(entry => 
+          (entry.scheduleId === scheduleId && 
+           entry.scheduleItemId === scheduleItemId && 
+           entry.employeeId === employeeId)
+            ? { ...entry, locked: false }
+            : entry
+        )
+      );
+      
+      toast.success('Worker entries have been unlocked');
+      return true;
+    } catch (error) {
+      console.error('Error unlocking employee entries:', error);
+      toast.error('Failed to unlock entries');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const getLockedEmployeeEntries = () => {
+    const lockedEntries: { 
+      scheduleId: string; 
+      scheduleItemId: string; 
+      employeeId: string;
+      date: string;
+      task: string;
+      employee: string;
+    }[] = [];
+    
+    // Find all unique locked employee/schedule/item combinations
+    workEntries.forEach(entry => {
+      if (entry.locked) {
+        // Check if this combination is already in the list
+        const existingEntry = lockedEntries.find(
+          le => le.scheduleId === entry.scheduleId && 
+               le.scheduleItemId === entry.scheduleItemId && 
+               le.employeeId === entry.employeeId
+        );
+        
+        if (!existingEntry) {
+          const schedule = schedules.find(s => s.id === entry.scheduleId);
+          const scheduleItem = schedule?.items.find(item => item.id === entry.scheduleItemId);
+          
+          if (schedule && scheduleItem) {
+            lockedEntries.push({
+              scheduleId: entry.scheduleId,
+              scheduleItemId: entry.scheduleItemId,
+              employeeId: entry.employeeId,
+              date: schedule.date,
+              task: scheduleItem.task,
+              employee: `Employee ID: ${entry.employeeId}` // This would be better with employee name, but we don't have that context here
+            });
+          }
+        }
+      }
+    });
+    
+    return lockedEntries;
+  };
+
   return (
     <ScheduleContext.Provider value={{
       schedules,
@@ -461,7 +554,9 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       updateSchedule,
       deleteSchedule,
       lockEmployeeEntry,
+      unlockEmployeeEntry,
       isEmployeeEntryLocked,
+      getLockedEmployeeEntries,
       isLoading
     }}>
       {children}
