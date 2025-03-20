@@ -346,7 +346,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         f8mass: newEntry.f8Mass,
         dustmass: newEntry.dustMass,
         massinputs: newEntry.massInputs,
-        cartons: newEntry.cartons // Updated to include cartons
+        cartons: newEntry.cartons 
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
