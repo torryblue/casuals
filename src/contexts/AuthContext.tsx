@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
 type AuthUser = {

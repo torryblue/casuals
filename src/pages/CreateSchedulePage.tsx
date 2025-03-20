@@ -8,17 +8,15 @@ import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import StrippingScheduleForm from "@/components/StrippingScheduleForm";
 import MachineScheduleForm from "@/components/MachineScheduleForm";
-import SprayingScheduleForm from "@/components/SprayingScheduleForm";
 import GradingScheduleForm from "@/components/GradingScheduleForm";
 
 const PREDEFINED_TASKS = [
   "Stripping",
-  "Bailing", 
+  "Bailing Lamina", 
   "Machine",
-  "Sticks",
+  "Bailing Sticks",
   "Grading",
-  "Ticket Based Work",
-  "Spraying"
+  "Ticket Based Work"
 ];
 
 const CreateSchedulePage = () => {
@@ -118,18 +116,6 @@ const CreateSchedulePage = () => {
       employeeIds: data.employeeIds,
       workers: data.workers,
       targetMass: ensureWholeNumber(data.targetMass)
-    };
-    setScheduleItems(newItems);
-  };
-
-  const handleSprayingDataChange = (index: number, data: { employeeIds: string[], targetMass: number, numberOfBales: number }) => {
-    const newItems = [...scheduleItems];
-    newItems[index] = { 
-      ...newItems[index], 
-      employeeIds: data.employeeIds,
-      workers: data.employeeIds.length,
-      targetMass: ensureWholeNumber(data.targetMass),
-      numberOfBales: ensureWholeNumber(data.numberOfBales)
     };
     setScheduleItems(newItems);
   };
@@ -258,9 +244,8 @@ const CreateSchedulePage = () => {
 
                         {item.task !== "Stripping" && 
                          item.task !== "Machine" && 
-                         item.task !== "Spraying" && 
                          item.task !== "Grading" && 
-                         item.task !== "Sticks" && (
+                         item.task !== "Bailing Sticks" && (
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-gray-600">
                               Workers Needed
@@ -291,13 +276,6 @@ const CreateSchedulePage = () => {
                             employeeIds={item.employeeIds}
                             targetMass={item.targetMass}
                             onChange={(data) => handleMachineDataChange(index, data)}
-                          />
-                        </div>
-                      ) : item.task === "Spraying" ? (
-                        <div className="mt-4">
-                          <SprayingScheduleForm 
-                            employeeIds={item.employeeIds}
-                            onChange={(data) => handleSprayingDataChange(index, data)}
                           />
                         </div>
                       ) : item.task === "Grading" ? (

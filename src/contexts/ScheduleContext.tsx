@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
-import { supabase } from '@/lib/supabase';
-import { Employee } from '@/contexts/EmployeeContext';
+import { supabase } from '../lib/supabase';
+import { Employee } from './EmployeeContext';
 
 export type ScheduleItem = {
   id: string;
@@ -39,6 +39,17 @@ export type WorkEntry = {
   totalSticks?: number;
   fm?: number;
   locked?: boolean;
+  // Machine specific fields
+  outputMass?: number;
+  sticksMass?: number;
+  f8Mass?: number;
+  dustMass?: number;
+  massInputs?: number[];
+  // Bailing/Crushing Sticks specific fields
+  cartons?: {
+    number: number;
+    mass: number;
+  }[];
 };
 
 type ScheduleContextType = {
@@ -47,6 +58,7 @@ type ScheduleContextType = {
   addSchedule: (date: string, items: Omit<ScheduleItem, 'id'>[]) => void;
   getScheduleById: (id: string) => Schedule | undefined;
   addWorkEntry: (entry: Omit<WorkEntry, 'id' | 'recordedAt'>) => void;
+  updateWorkEntry: (entryId: string, updatedEntry: Partial<WorkEntry>) => Promise<boolean>;
   getWorkEntriesForEmployee: (scheduleId: string, employeeId: string) => WorkEntry[];
   getAllSchedulesByEmployeeId: (employeeId: string) => Schedule[];
   isEmployeeAssignedForDate: (employeeId: string, date: string) => boolean;
@@ -56,6 +68,7 @@ type ScheduleContextType = {
   unlockEmployeeEntry: (scheduleId: string, scheduleItemId: string, employeeId: string) => Promise<boolean>;
   isEmployeeEntryLocked: (scheduleId: string, scheduleItemId: string, employeeId: string) => boolean;
   getLockedEmployeeEntries: () => { scheduleId: string; scheduleItemId: string; employeeId: string; date: string; task: string; employee: string }[];
+  getAssignedEmployeesForDate: (date: string) => string[];
   isLoading: boolean;
 };
 
@@ -67,7 +80,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Fetch schedules and work entries from Supabase when component mounts
     fetchSchedules();
     fetchWorkEntries();
   }, []);
@@ -88,10 +100,9 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         console.log('Fetched schedules:', data);
-        // Convert date strings back to Date objects
         const formattedSchedules = data.map(schedule => ({
           ...schedule,
-          createdAt: new Date(schedule.createdat) // Note: lowercase 'createdat' matches DB schema
+          createdAt: new Date(schedule.createdat)
         }));
         
         setSchedules(formattedSchedules as Schedule[]);
@@ -120,19 +131,24 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       if (data) {
         console.log('Fetched work entries:', data);
-        // Convert date strings back to Date objects and map field names
         const formattedEntries = data.map(entry => ({
           id: entry.id,
-          scheduleId: entry.scheduleid, // lowercase to match DB schema
-          scheduleItemId: entry.scheduleitemid, // lowercase to match DB schema
-          employeeId: entry.employeeid, // lowercase to match DB schema
+          scheduleId: entry.scheduleid,
+          scheduleItemId: entry.scheduleitemid,
+          employeeId: entry.employeeid,
           quantity: entry.quantity,
           remarks: entry.remarks,
-          recordedAt: new Date(entry.recordedat), // lowercase to match DB schema
-          scaleEntries: entry.scaleentries, // lowercase to match DB schema
-          totalSticks: entry.totalsticks, // lowercase to match DB schema
+          recordedAt: new Date(entry.recordedat),
+          scaleEntries: entry.scaleentries,
+          totalSticks: entry.totalsticks,
           fm: entry.fm,
-          locked: entry.locked
+          locked: entry.locked,
+          outputMass: entry.outputmass,
+          sticksMass: entry.sticksmass,
+          f8Mass: entry.f8mass,
+          dustMass: entry.dustmass,
+          massInputs: entry.massinputs,
+          cartons: entry.cartons // Updated to include cartons
         }));
         
         setWorkEntries(formattedEntries as WorkEntry[]);
@@ -150,13 +166,29 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     
     if (task && prefix === 'SCH') {
-      // Format: SCH-TASKNAME-TIMESTAMP-RANDOM
-      // Take only the first 4 characters of task name to keep it concise
       const taskPrefix = task.substring(0, 4).toUpperCase();
       return `${prefix}-${taskPrefix}-${timestamp}-${random}`;
     }
     
     return `${prefix}-${timestamp}-${random}`;
+  };
+
+  const getAssignedEmployeesForDate = (date: string) => {
+    const assignedEmployees: string[] = [];
+    
+    schedules.forEach(schedule => {
+      if (schedule.date === date) {
+        schedule.items.forEach(item => {
+          item.employeeIds.forEach(empId => {
+            if (!assignedEmployees.includes(empId)) {
+              assignedEmployees.push(empId);
+            }
+          });
+        });
+      }
+    });
+    
+    return assignedEmployees;
   };
 
   const isEmployeeAssignedForDate = (employeeId: string, date: string) => {
@@ -181,7 +213,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Find all entries for this employee on this schedule item
       const entriesToLock = workEntries.filter(
         entry => entry.scheduleId === scheduleId && 
                 entry.scheduleItemId === scheduleItemId && 
@@ -192,7 +223,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('No entries found to lock');
       }
       
-      // Update each entry in the database
       for (const entry of entriesToLock) {
         const { error } = await supabase
           .from('work_entries')
@@ -205,7 +235,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       
-      // Update local state
       setWorkEntries(prev => 
         prev.map(entry => 
           (entry.scheduleId === scheduleId && 
@@ -229,10 +258,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Find a representative task for the schedule ID
       const mainTask = items.length > 0 ? items[0].task : 'GEN';
       
-      // Map items and add ID
       const scheduleItems = items.map(item => ({
         ...item,
         id: generateId('ITEM')
@@ -247,17 +274,15 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Creating schedule with data:', JSON.stringify(newSchedule, null, 2));
       
-      // Format the data to match DB schema column names
       const scheduleRecord = {
         id: newSchedule.id,
         date: newSchedule.date,
-        items: scheduleItems, // This will be stored as JSONB
-        createdat: newSchedule.createdAt.toISOString() // lowercase to match DB schema
+        items: scheduleItems,
+        createdat: newSchedule.createdAt.toISOString()
       };
       
       console.log('Final schedule record to insert:', scheduleRecord);
       
-      // Store the schedule in Supabase
       const { error } = await supabase
         .from('schedules')
         .insert([scheduleRecord]);
@@ -285,13 +310,11 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // Check if employee is locked for this task
       if (isEmployeeEntryLocked(entry.scheduleId, entry.scheduleItemId, entry.employeeId)) {
         toast.error('This worker has been locked for this task');
         return;
       }
       
-      // Calculate total sticks if applicable
       let totalSticks = undefined;
       if (entry.scaleEntries && entry.scaleEntries.some(se => se.sticks !== undefined)) {
         totalSticks = entry.scaleEntries.reduce((sum, se) => sum + (se.sticks || 0), 0);
@@ -301,29 +324,33 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         ...entry,
         id: generateId('WORK'),
         recordedAt: new Date(),
-        totalSticks: totalSticks || entry.totalSticks // Use provided totalSticks or calculate it
+        totalSticks: totalSticks || entry.totalSticks
       };
       
       console.log('Adding work entry with data:', newEntry);
       
-      // Format the data to match DB schema column names
       const workEntryRecord = {
         id: newEntry.id,
-        scheduleid: newEntry.scheduleId, // lowercase to match DB schema
-        scheduleitemid: newEntry.scheduleItemId, // lowercase to match DB schema
-        employeeid: newEntry.employeeId, // lowercase to match DB schema
+        scheduleid: newEntry.scheduleId,
+        scheduleitemid: newEntry.scheduleItemId,
+        employeeid: newEntry.employeeId,
         quantity: newEntry.quantity,
         remarks: newEntry.remarks,
-        recordedat: newEntry.recordedAt.toISOString(), // lowercase to match DB schema
-        scaleentries: newEntry.scaleEntries, // lowercase to match DB schema
-        totalsticks: newEntry.totalSticks, // lowercase to match DB schema
+        recordedat: newEntry.recordedAt.toISOString(),
+        scaleentries: newEntry.scaleEntries,
+        totalsticks: newEntry.totalSticks,
         fm: newEntry.fm,
-        locked: newEntry.locked || false
+        locked: newEntry.locked || false,
+        outputmass: newEntry.outputMass,
+        sticksmass: newEntry.sticksMass,
+        f8mass: newEntry.f8Mass,
+        dustmass: newEntry.dustMass,
+        massinputs: newEntry.massInputs,
+        cartons: newEntry.cartons // Updated to include cartons
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
       
-      // Store the work entry in Supabase
       const { error } = await supabase
         .from('work_entries')
         .insert([workEntryRecord]);
@@ -338,6 +365,77 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       console.error('Error adding work entry:', error);
       toast.error('Failed to record work entry');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateWorkEntry = async (entryId: string, updatedEntry: Partial<WorkEntry>): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      const originalEntry = workEntries.find(entry => entry.id === entryId);
+      
+      if (!originalEntry) {
+        toast.error('Work entry not found');
+        return false;
+      }
+      
+      if (originalEntry.locked) {
+        toast.error('Cannot edit a locked entry');
+        return false;
+      }
+      
+      let totalSticks = originalEntry.totalSticks;
+      if (updatedEntry.scaleEntries) {
+        totalSticks = updatedEntry.scaleEntries.reduce((sum, se) => sum + (se.sticks || 0), 0);
+      }
+      
+      const updateData: any = {
+        ...updatedEntry,
+        totalsticks: totalSticks
+      };
+      
+      if (updatedEntry.outputMass !== undefined) updateData.outputmass = updatedEntry.outputMass;
+      if (updatedEntry.sticksMass !== undefined) updateData.sticksmass = updatedEntry.sticksMass;
+      if (updatedEntry.f8Mass !== undefined) updateData.f8mass = updatedEntry.f8Mass;
+      if (updatedEntry.dustMass !== undefined) updateData.dustmass = updatedEntry.dustMass;
+      if (updatedEntry.scaleEntries !== undefined) updateData.scaleentries = updatedEntry.scaleEntries;
+      if (updatedEntry.massInputs !== undefined) updateData.massinputs = updatedEntry.massInputs;
+      if (updatedEntry.cartons !== undefined) updateData.cartons = updatedEntry.cartons; // Updated to include cartons
+      
+      delete updateData.outputMass;
+      delete updateData.sticksMass;
+      delete updateData.f8Mass;
+      delete updateData.dustMass;
+      delete updateData.massInputs;
+      
+      console.log('Updating work entry:', entryId, 'with data:', updateData);
+      
+      const { error } = await supabase
+        .from('work_entries')
+        .update(updateData)
+        .eq('id', entryId);
+      
+      if (error) {
+        console.error('Supabase error updating work entry:', error);
+        throw error;
+      }
+      
+      setWorkEntries(prev => 
+        prev.map(entry => 
+          entry.id === entryId
+            ? { ...entry, ...updatedEntry, totalSticks }
+            : entry
+        )
+      );
+      
+      toast.success('Work entry updated successfully');
+      return true;
+    } catch (error) {
+      console.error('Error updating work entry:', error);
+      toast.error('Failed to update work entry');
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -372,17 +470,15 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         items: updatedItems
       };
       
-      // Format the data to match DB schema column names
       const scheduleRecord = {
         id: updatedSchedule.id,
         date: updatedSchedule.date,
         items: updatedSchedule.items,
-        createdat: updatedSchedule.createdAt.toISOString() // lowercase to match DB schema
+        createdat: updatedSchedule.createdAt.toISOString()
       };
       
       console.log('Updating schedule with data:', scheduleRecord);
       
-      // Update the schedule in Supabase
       const { error } = await supabase
         .from('schedules')
         .update(scheduleRecord)
@@ -414,20 +510,16 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     
     try {
-      // First delete all related work entries
-      console.log(`Deleting work entries for schedule ${scheduleId}`);
       const { error: entriesError } = await supabase
         .from('work_entries')
         .delete()
-        .eq('scheduleid', scheduleId); // lowercase to match DB schema
+        .eq('scheduleid', scheduleId);
       
       if (entriesError) {
         console.error('Supabase error deleting work entries:', entriesError);
         throw entriesError;
       }
       
-      // Then delete the schedule
-      console.log(`Deleting schedule ${scheduleId}`);
       const { error: scheduleError } = await supabase
         .from('schedules')
         .delete()
@@ -450,12 +542,10 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Unlock entries with admin override functionality
   const unlockEmployeeEntry = async (scheduleId: string, scheduleItemId: string, employeeId: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // Find all entries for this employee on this schedule item
       const entriesToUnlock = workEntries.filter(
         entry => entry.scheduleId === scheduleId && 
                 entry.scheduleItemId === scheduleItemId && 
@@ -467,7 +557,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // Update each entry in the database
       for (const entry of entriesToUnlock) {
         const { error } = await supabase
           .from('work_entries')
@@ -480,7 +569,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       
-      // Update local state
       setWorkEntries(prev => 
         prev.map(entry => 
           (entry.scheduleId === scheduleId && 
@@ -501,8 +589,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     }
   };
-  
-  // Get all locked employee entries, regardless of date
+
   const getLockedEmployeeEntries = () => {
     const lockedEntries: { 
       scheduleId: string; 
@@ -513,10 +600,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       employee: string;
     }[] = [];
     
-    // Find all unique locked employee/schedule/item combinations
     workEntries.forEach(entry => {
       if (entry.locked) {
-        // Check if this combination is already in the list
         const existingEntry = lockedEntries.find(
           le => le.scheduleId === entry.scheduleId && 
                le.scheduleItemId === entry.scheduleItemId && 
@@ -534,7 +619,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
               employeeId: entry.employeeId,
               date: schedule.date,
               task: scheduleItem.task,
-              employee: `Employee ID: ${entry.employeeId}` // This would be better with employee name, but we don't have that context here
+              employee: `Employee ID: ${entry.employeeId}`
             });
           }
         }
@@ -551,6 +636,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       addSchedule,
       getScheduleById,
       addWorkEntry,
+      updateWorkEntry,
       getWorkEntriesForEmployee,
       getAllSchedulesByEmployeeId,
       isEmployeeAssignedForDate,
@@ -560,6 +646,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       unlockEmployeeEntry,
       isEmployeeEntryLocked,
       getLockedEmployeeEntries,
+      getAssignedEmployeesForDate,
       isLoading
     }}>
       {children}

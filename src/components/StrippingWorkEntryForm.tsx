@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
-import { useSchedules, WorkEntry } from "@/contexts/ScheduleContext";
-import { useEmployees } from "@/contexts/EmployeeContext";
+import { useSchedules, WorkEntry } from "../contexts/ScheduleContext";
+import { useEmployees } from "../contexts/EmployeeContext";
 import { toast } from "sonner";
 import { Lock, Shield, Save, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 

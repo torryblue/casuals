@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -295,36 +294,20 @@ const EditSchedulePage = () => {
                       </>
                     )}
                     
-                    {item.task.toLowerCase() === "spraying" && (
-                      <>
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Target Mass (kg)
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            className="input-field w-full"
-                            value={item.targetMass}
-                            onChange={(e) => handleTargetMassChange(index, e.target.value)}
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Number of Bales
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            className="input-field w-full"
-                            value={item.numberOfBales}
-                            onChange={(e) => handleNumberOfBalesChange(index, e.target.value)}
-                          />
-                        </div>
-                      </>
+                    {item.task.toLowerCase() === "bailing lamina" && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Target Mass (kg)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          className="input-field w-full"
+                          value={item.targetMass}
+                          onChange={(e) => handleTargetMassChange(index, e.target.value)}
+                        />
+                      </div>
                     )}
                     
                     {item.task.toLowerCase() === "grading" && (
@@ -374,7 +357,7 @@ const EditSchedulePage = () => {
                       </div>
                     )}
                     
-                    {!["stripping", "spraying", "grading", "machine", "sticks"].includes(item.task.toLowerCase()) && (
+                    {!["stripping", "bailing lamina", "grading", "machine", "sticks"].includes(item.task.toLowerCase()) && (
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-gray-700">
                           Quantity (Tickets)
