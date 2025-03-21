@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Lock, ArrowDownToLine, ArrowUpFromLine, Plus } from 'lucide-react';
-import { useSchedules, WorkEntry } from '@/contexts/ScheduleContext';
+import { useSchedules, WorkEntry, Carton } from '@/contexts/ScheduleContext';
 import { toast } from 'sonner';
 
 interface BailingStickWorkEntryFormProps {
@@ -21,7 +21,7 @@ const BailingStickWorkEntryForm = ({
   existingEntries
 }: BailingStickWorkEntryFormProps) => {
   const { addWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
-  const [cartons, setCartons] = useState<{ number: number; mass: number }[]>([{ number: 1, mass: 0 }]);
+  const [cartons, setCartons] = useState<Carton[]>([{ id: 1, grade: '', mass: 0 }]);
   const [remarks, setRemarks] = useState<string>('');
   const [savedProgress, setSavedProgress] = useState<any>(null);
   const [hasSavedProgress, setHasSavedProgress] = useState(false);
@@ -46,7 +46,7 @@ const BailingStickWorkEntryForm = ({
   }, [scheduleId, scheduleItemId, employeeId]);
 
   const addCarton = () => {
-    setCartons([...cartons, { number: cartons.length + 1, mass: 0 }]);
+    setCartons([...cartons, { id: cartons.length + 1, grade: '', mass: 0 }]);
   };
 
   const removeCarton = (index: number) => {
@@ -56,7 +56,7 @@ const BailingStickWorkEntryForm = ({
       // Renumber remaining cartons
       const renumberedCartons = newCartons.map((carton, idx) => ({
         ...carton,
-        number: idx + 1
+        id: idx + 1
       }));
       setCartons(renumberedCartons);
     }
@@ -65,6 +65,12 @@ const BailingStickWorkEntryForm = ({
   const handleCartonMassChange = (index: number, mass: number) => {
     const newCartons = [...cartons];
     newCartons[index] = { ...newCartons[index], mass };
+    setCartons(newCartons);
+  };
+
+  const handleCartonGradeChange = (index: number, grade: string) => {
+    const newCartons = [...cartons];
+    newCartons[index] = { ...newCartons[index], grade };
     setCartons(newCartons);
   };
 
@@ -125,11 +131,11 @@ const BailingStickWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalMass(),
       remarks,
-      cartons: cartons.map(c => ({ number: c.number, mass: c.mass }))
+      cartons
     });
     
     // Reset form
-    setCartons([{ number: 1, mass: 0 }]);
+    setCartons([{ id: 1, grade: '', mass: 0 }]);
     setRemarks('');
     
     // Clear saved progress
@@ -156,14 +162,14 @@ const BailingStickWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalMass(),
       remarks,
-      cartons: cartons.map(c => ({ number: c.number, mass: c.mass }))
+      cartons
     });
     
     // Lock the employee entries
     lockEmployeeEntry(scheduleId, scheduleItemId, employeeId);
     
     // Reset form and clear saved progress
-    setCartons([{ number: 1, mass: 0 }]);
+    setCartons([{ id: 1, grade: '', mass: 0 }]);
     setRemarks('');
     clearSavedProgress();
     
@@ -172,7 +178,7 @@ const BailingStickWorkEntryForm = ({
   };
 
   const handleCancel = () => {
-    setCartons([{ number: 1, mass: 0 }]);
+    setCartons([{ id: 1, grade: '', mass: 0 }]);
     setRemarks('');
   };
 
@@ -235,9 +241,22 @@ const BailingStickWorkEntryForm = ({
           <div key={index} className="flex items-center gap-2 p-3 bg-gray-50 rounded-md">
             <div className="flex-grow grid grid-cols-1 sm:grid-cols-5 gap-4">
               <div className="sm:col-span-1 flex items-center">
-                <span className="text-sm font-medium">Carton #{carton.number}</span>
+                <span className="text-sm font-medium">Carton #{carton.id}</span>
               </div>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Grade
+                </label>
+                <input
+                  type="text"
+                  className="input-field w-full"
+                  placeholder="Enter grade"
+                  value={carton.grade}
+                  onChange={(e) => handleCartonGradeChange(index, e.target.value)}
+                  disabled={isLocked}
+                />
+              </div>
+              <div className="sm:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Mass (kg)
                 </label>

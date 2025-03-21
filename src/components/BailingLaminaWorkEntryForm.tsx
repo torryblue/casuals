@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Lock, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
-import { useSchedules, WorkEntry } from '../contexts/ScheduleContext';
+import { useSchedules, WorkEntry, Carton } from '../contexts/ScheduleContext';
 import { toast } from 'sonner';
-
-interface Carton {
-  id: number;
-  grade: string;
-  mass: number;
-}
 
 interface BailingLaminaWorkEntryFormProps {
   scheduleId: string;
@@ -28,7 +22,7 @@ const BailingLaminaWorkEntryForm = ({
 }: BailingLaminaWorkEntryFormProps) => {
   const { addWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
   const [cartons, setCartons] = useState<Carton[]>([{ id: 1, grade: '', mass: 0 }]);
-  const [inputMass, setInputMass] = useState<string>('');
+  const [massInputs, setMassInputs] = useState<number[]>([0]);
   const [remarks, setRemarks] = useState<string>('');
   const [savedProgress, setSavedProgress] = useState<any>(null);
   const [hasSavedProgress, setHasSavedProgress] = useState(false);
@@ -75,7 +69,29 @@ const BailingLaminaWorkEntryForm = ({
     setCartons(newCartons);
   };
 
+  const addMassInput = () => {
+    setMassInputs([...massInputs, 0]);
+  };
+
+  const removeMassInput = (index: number) => {
+    if (massInputs.length > 1) {
+      const newMassInputs = [...massInputs];
+      newMassInputs.splice(index, 1);
+      setMassInputs(newMassInputs);
+    }
+  };
+
+  const handleMassInputChange = (index: number, value: number) => {
+    const newMassInputs = [...massInputs];
+    newMassInputs[index] = value;
+    setMassInputs(newMassInputs);
+  };
+
   const calculateTotalInputMass = (): number => {
+    return massInputs.reduce((sum, mass) => sum + (mass || 0), 0);
+  };
+
+  const calculateTotalOutputMass = (): number => {
     return cartons.reduce((sum, carton) => sum + (carton.mass || 0), 0);
   };
 
@@ -83,7 +99,7 @@ const BailingLaminaWorkEntryForm = ({
   const saveProgress = () => {
     const progressData = {
       cartons,
-      inputMass,
+      massInputs,
       remarks,
       savedAt: new Date().toISOString()
     };
@@ -100,7 +116,7 @@ const BailingLaminaWorkEntryForm = ({
   const loadProgress = () => {
     if (savedProgress) {
       setCartons(savedProgress.cartons);
-      setInputMass(savedProgress.inputMass);
+      setMassInputs(savedProgress.massInputs);
       setRemarks(savedProgress.remarks);
       toast.success("Progress loaded successfully");
     }
@@ -129,13 +145,14 @@ const BailingLaminaWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalInputMass(),
       remarks,
-      outputMass: parseFloat(inputMass) || 0,
+      outputMass: calculateTotalOutputMass(),
+      massInputs,
       cartons
     });
     
     // Reset form
     setCartons([{ id: 1, grade: '', mass: 0 }]);
-    setInputMass('');
+    setMassInputs([0]);
     setRemarks('');
     
     // Clear saved progress
@@ -157,7 +174,8 @@ const BailingLaminaWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalInputMass(),
       remarks,
-      outputMass: parseFloat(inputMass) || 0,
+      outputMass: calculateTotalOutputMass(),
+      massInputs,
       cartons
     });
     
@@ -166,7 +184,7 @@ const BailingLaminaWorkEntryForm = ({
     
     // Reset form and clear saved progress
     setCartons([{ id: 1, grade: '', mass: 0 }]);
-    setInputMass('');
+    setMassInputs([0]);
     setRemarks('');
     clearSavedProgress();
     
@@ -176,7 +194,7 @@ const BailingLaminaWorkEntryForm = ({
 
   const handleCancel = () => {
     setCartons([{ id: 1, grade: '', mass: 0 }]);
-    setInputMass('');
+    setMassInputs([0]);
     setRemarks('');
   };
 
@@ -227,35 +245,95 @@ const BailingLaminaWorkEntryForm = ({
           Last saved: {new Date(savedProgress.savedAt).toLocaleString()}
         </div>
       )}
-      
-      {/* Carton inputs */}
+
+      {/* Mass Inputs (multiple) */}
       <div className="space-y-4">
-        {cartons.map((carton, index) => (
-          <div key={carton.id} className="flex items-center gap-2">
-            <div className="flex-grow space-y-2">
+        <h3 className="text-sm font-semibold text-gray-700">Input Mass Entries</h3>
+        {massInputs.map((mass, index) => (
+          <div key={index} className="flex items-center gap-2">
+            <div className="flex-grow">
               <label className="block text-xs font-medium text-gray-600">
-                Carton #{carton.id}
+                Input Mass #{index + 1} (kg)
               </label>
-              <input
-                type="text"
-                className="input-field w-full"
-                placeholder="Grade"
-                value={carton.grade}
-                onChange={(e) => handleCartonChange(index, 'grade', e.target.value)}
-                disabled={isLocked}
-                required
-              />
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                className="input-field w-full"
-                placeholder="Mass (kg)"
-                value={carton.mass}
-                onChange={(e) => handleCartonChange(index, 'mass', parseFloat(e.target.value) || 0)}
+                className="input-field w-full p-2 border border-gray-300 rounded-md"
+                placeholder="0.00"
+                value={mass || ''}
+                onChange={(e) => handleMassInputChange(index, parseFloat(e.target.value) || 0)}
                 disabled={isLocked}
                 required
               />
+            </div>
+            {!isLocked && massInputs.length > 1 && (
+              <button
+                type="button"
+                className="mt-6 p-1 text-red-500 hover:bg-red-50 rounded-full"
+                onClick={() => removeMassInput(index)}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+        ))}
+        
+        {!isLocked && (
+          <button
+            type="button"
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            onClick={addMassInput}
+          >
+            + Add Another Mass Input
+          </button>
+        )}
+        
+        {massInputs.length > 0 && (
+          <div className="p-3 bg-gray-50 rounded-md">
+            <p className="text-sm font-medium">
+              Total Input Mass: {calculateTotalInputMass()} kg
+            </p>
+          </div>
+        )}
+      </div>
+      
+      {/* Carton outputs */}
+      <div className="space-y-4 mt-6">
+        <h3 className="text-sm font-semibold text-gray-700">Output Cartons</h3>
+        {cartons.map((carton, index) => (
+          <div key={carton.id} className="flex items-center gap-2">
+            <div className="flex-grow grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-600">
+                  Carton #{carton.id} Grade
+                </label>
+                <input
+                  type="text"
+                  className="input-field w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Grade"
+                  value={carton.grade}
+                  onChange={(e) => handleCartonChange(index, 'grade', e.target.value)}
+                  disabled={isLocked}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600">
+                  Carton #{carton.id} Mass (kg)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="input-field w-full p-2 border border-gray-300 rounded-md"
+                  placeholder="Mass (kg)"
+                  value={carton.mass || ''}
+                  onChange={(e) => handleCartonChange(index, 'mass', parseFloat(e.target.value) || 0)}
+                  disabled={isLocked}
+                  required
+                />
+              </div>
             </div>
             {!isLocked && cartons.length > 1 && (
               <button
@@ -279,32 +357,13 @@ const BailingLaminaWorkEntryForm = ({
           </button>
         )}
         
-        {cartons.length > 1 && (
+        {cartons.length > 0 && (
           <div className="p-3 bg-gray-50 rounded-md">
             <p className="text-sm font-medium">
-              Total Input Mass: {calculateTotalInputMass()} kg
+              Total Output Mass: {calculateTotalOutputMass()} kg
             </p>
           </div>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-xs font-medium text-gray-600">
-            Output Mass (kg)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="input-field w-full"
-            placeholder="0.00"
-            value={inputMass}
-            onChange={(e) => setInputMass(e.target.value)}
-            disabled={isLocked}
-            required
-          />
-        </div>
       </div>
 
       <div className="space-y-2">
@@ -312,7 +371,7 @@ const BailingLaminaWorkEntryForm = ({
           Remarks (Optional)
         </label>
         <textarea
-          className="input-field w-full"
+          className="input-field w-full p-2 border border-gray-300 rounded-md"
           placeholder="Any additional comments"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
@@ -326,14 +385,14 @@ const BailingLaminaWorkEntryForm = ({
           <button
             type="button"
             onClick={handleCancel}
-            className="btn-secondary flex items-center"
+            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 flex items-center"
           >
             <X className="h-4 w-4 mr-2" />
             Cancel
           </button>
           <button
             type="submit"
-            className="btn-primary flex items-center"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
           >
             <Save className="h-4 w-4 mr-2" />
             Save
@@ -341,7 +400,7 @@ const BailingLaminaWorkEntryForm = ({
           <button
             type="button"
             onClick={handleLock}
-            className="btn-warning flex items-center"
+            className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600 flex items-center"
           >
             <Lock className="h-4 w-4 mr-2" />
             Save & Lock
@@ -359,6 +418,7 @@ const BailingLaminaWorkEntryForm = ({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Input Mass</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Output Mass</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cartons</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
@@ -373,6 +433,9 @@ const BailingLaminaWorkEntryForm = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {entry.outputMass || 'N/A'} kg
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {entry.cartons ? entry.cartons.length : 0}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {entry.locked ? (

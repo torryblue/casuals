@@ -1,14 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import AppLayout from "@/components/AppLayout";
-import { ArrowLeft, Save, X, Plus, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
+import BailingLaminaScheduleForm from "@/components/BailingLaminaScheduleForm";
 import StrippingScheduleForm from "@/components/StrippingScheduleForm";
 import MachineScheduleForm from "@/components/MachineScheduleForm";
 import GradingScheduleForm from "@/components/GradingScheduleForm";
+import AppLayout from "@/components/AppLayout";
 
 const PREDEFINED_TASKS = [
   "Stripping",
@@ -105,6 +105,17 @@ const CreateSchedulePage = () => {
       workers: data.employeeIds.length,
       targetMass: ensureWholeNumber(data.targetMass),
       numberOfScales: ensureWholeNumber(data.numberOfScales)
+    };
+    setScheduleItems(newItems);
+  };
+
+  const handleBailingLaminaDataChange = (index: number, data: { employeeIds: string[], targetMass: number }) => {
+    const newItems = [...scheduleItems];
+    newItems[index] = { 
+      ...newItems[index], 
+      employeeIds: data.employeeIds,
+      workers: data.employeeIds.length,
+      targetMass: ensureWholeNumber(data.targetMass)
     };
     setScheduleItems(newItems);
   };
@@ -244,7 +255,8 @@ const CreateSchedulePage = () => {
 
                         {item.task !== "Stripping" && 
                          item.task !== "Machine" && 
-                         item.task !== "Grading" && 
+                         item.task !== "Grading" &&
+                         item.task !== "Bailing Lamina" &&
                          item.task !== "Bailing Sticks" && (
                           <div className="space-y-2">
                             <label className="block text-xs font-medium text-gray-600">
@@ -267,10 +279,20 @@ const CreateSchedulePage = () => {
                         <div className="mt-4">
                           <StrippingScheduleForm 
                             employeeIds={item.employeeIds}
+                            targetMass={item.targetMass}
+                            numberOfScales={item.numberOfScales}
                             onChange={(data) => handleStrippingDataChange(index, data)}
                           />
                         </div>
-                      ) : item.task === "Machine" || item.task === "Sticks" ? (
+                      ) : item.task === "Bailing Lamina" ? (
+                        <div className="mt-4">
+                          <BailingLaminaScheduleForm 
+                            employeeIds={item.employeeIds}
+                            targetMass={item.targetMass}
+                            onChange={(data) => handleBailingLaminaDataChange(index, data)}
+                          />
+                        </div>
+                      ) : item.task === "Machine" || item.task === "Bailing Sticks" ? (
                         <div className="mt-4">
                           <MachineScheduleForm 
                             employeeIds={item.employeeIds}
@@ -282,6 +304,8 @@ const CreateSchedulePage = () => {
                         <div className="mt-4">
                           <GradingScheduleForm
                             employeeIds={item.employeeIds}
+                            numberOfBales={item.numberOfBales}
+                            classGrades={item.classGrades}
                             onChange={(data) => handleGradingDataChange(index, data)}
                           />
                         </div>
@@ -300,7 +324,7 @@ const CreateSchedulePage = () => {
                                       id={`employee-${index}-${employee.id}`}
                                       checked={(item.employeeIds as string[]).includes(employee.id)}
                                       onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
-                                      className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
+                                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                     />
                                     <label
                                       htmlFor={`employee-${index}-${employee.id}`}

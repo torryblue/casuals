@@ -1,8 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
-import { X, Save, Lock, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
-import { useSchedules, WorkEntry } from '../contexts/ScheduleContext';
+import { X, Save, Lock, ArrowDownToLine, ArrowUpFromLine, Plus, Trash } from 'lucide-react';
+import { useSchedules, WorkEntry, OutputEntry } from '../contexts/ScheduleContext';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import MultiOutputEntryForm from '@/components/MultiOutputEntryForm';
 
 interface MachineWorkEntryFormProps {
   scheduleId: string;
@@ -13,7 +16,7 @@ interface MachineWorkEntryFormProps {
   existingEntries: WorkEntry[];
 }
 
-const MachineWorkEntryForm = ({
+const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
   scheduleId,
   scheduleItemId,
   employeeId,
@@ -23,10 +26,7 @@ const MachineWorkEntryForm = ({
 }: MachineWorkEntryFormProps) => {
   const { addWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
   const [massInputs, setMassInputs] = useState<number[]>([0]);
-  const [outputMass, setOutputMass] = useState<string>('');
-  const [sticksMass, setSticksMass] = useState<string>('');
-  const [f8Mass, setF8Mass] = useState<string>('');
-  const [dustMass, setDustMass] = useState<string>('');
+  const [outputEntries, setOutputEntries] = useState<OutputEntry[]>([]);
   const [remarks, setRemarks] = useState<string>('');
   const [savedProgress, setSavedProgress] = useState<any>(null);
   const [hasSavedProgress, setHasSavedProgress] = useState(false);
@@ -72,14 +72,17 @@ const MachineWorkEntryForm = ({
     return massInputs.reduce((sum, value) => sum + (value || 0), 0);
   };
 
+  const calculateTotalByType = (type: 'output' | 'sticks' | 'f8' | 'dust'): number => {
+    return outputEntries
+      .filter(entry => entry.type === type)
+      .reduce((sum, entry) => sum + (entry.mass || 0), 0);
+  };
+
   // Save progress to localStorage
   const saveProgress = () => {
     const progressData = {
       massInputs,
-      outputMass,
-      sticksMass,
-      f8Mass,
-      dustMass,
+      outputEntries,
       remarks,
       savedAt: new Date().toISOString()
     };
@@ -95,12 +98,9 @@ const MachineWorkEntryForm = ({
   // Load saved progress
   const loadProgress = () => {
     if (savedProgress) {
-      setMassInputs(savedProgress.massInputs);
-      setOutputMass(savedProgress.outputMass);
-      setSticksMass(savedProgress.sticksMass);
-      setF8Mass(savedProgress.f8Mass);
-      setDustMass(savedProgress.dustMass);
-      setRemarks(savedProgress.remarks);
+      setMassInputs(savedProgress.massInputs || [0]);
+      setOutputEntries(savedProgress.outputEntries || []);
+      setRemarks(savedProgress.remarks || '');
       toast.success("Progress loaded successfully");
     }
   };
@@ -128,19 +128,16 @@ const MachineWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalInputMass(),
       remarks,
-      outputMass: parseFloat(outputMass) || 0,
-      sticksMass: parseFloat(sticksMass) || 0,
-      f8Mass: parseFloat(f8Mass) || 0,
-      dustMass: parseFloat(dustMass) || 0,
+      outputMass: calculateTotalByType('output'),
+      sticksMass: calculateTotalByType('sticks'),
+      f8Mass: calculateTotalByType('f8'),
+      dustMass: calculateTotalByType('dust'),
       massInputs
     });
     
     // Reset form
     setMassInputs([0]);
-    setOutputMass('');
-    setSticksMass('');
-    setF8Mass('');
-    setDustMass('');
+    setOutputEntries([]);
     setRemarks('');
     
     // Clear saved progress
@@ -162,10 +159,10 @@ const MachineWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalInputMass(),
       remarks,
-      outputMass: parseFloat(outputMass) || 0,
-      sticksMass: parseFloat(sticksMass) || 0,
-      f8Mass: parseFloat(f8Mass) || 0,
-      dustMass: parseFloat(dustMass) || 0,
+      outputMass: calculateTotalByType('output'),
+      sticksMass: calculateTotalByType('sticks'),
+      f8Mass: calculateTotalByType('f8'),
+      dustMass: calculateTotalByType('dust'),
       massInputs
     });
     
@@ -174,10 +171,7 @@ const MachineWorkEntryForm = ({
     
     // Reset form and clear saved progress
     setMassInputs([0]);
-    setOutputMass('');
-    setSticksMass('');
-    setF8Mass('');
-    setDustMass('');
+    setOutputEntries([]);
     setRemarks('');
     clearSavedProgress();
     
@@ -187,10 +181,7 @@ const MachineWorkEntryForm = ({
 
   const handleCancel = () => {
     setMassInputs([0]);
-    setOutputMass('');
-    setSticksMass('');
-    setF8Mass('');
-    setDustMass('');
+    setOutputEntries([]);
     setRemarks('');
   };
 
@@ -205,32 +196,35 @@ const MachineWorkEntryForm = ({
       {/* Progress management buttons */}
       {!isLocked && (
         <div className="flex justify-end space-x-2">
-          <button
+          <Button
             type="button"
-            className="px-3 py-1.5 flex items-center text-sm rounded-md text-white bg-blue-500 hover:bg-blue-600"
+            variant="outline"
+            className="flex items-center text-blue-600 border-blue-200 hover:bg-blue-50"
             onClick={saveProgress}
           >
             <ArrowDownToLine className="h-3.5 w-3.5 mr-1.5" />
             Save Progress
-          </button>
+          </Button>
           
           {hasSavedProgress && (
             <>
-              <button
+              <Button
                 type="button"
-                className="px-3 py-1.5 flex items-center text-sm rounded-md text-white bg-green-500 hover:bg-green-600"
+                variant="outline"
+                className="flex items-center text-green-600 border-green-200 hover:bg-green-50"
                 onClick={loadProgress}
               >
                 <ArrowUpFromLine className="h-3.5 w-3.5 mr-1.5" />
                 Load Saved
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="px-3 py-1.5 flex items-center text-sm rounded-md text-white bg-red-500 hover:bg-red-600"
+                variant="outline"
+                className="flex items-center text-red-600 border-red-200 hover:bg-red-50"
                 onClick={clearSavedProgress}
               >
                 Clear Saved
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -244,130 +238,75 @@ const MachineWorkEntryForm = ({
       
       {/* Multiple mass inputs */}
       <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium">Mass Inputs</h4>
+          
+          {!isLocked && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addMassInput}
+              className="h-8 px-2 text-xs"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add Input
+            </Button>
+          )}
+        </div>
+        
         {massInputs.map((value, index) => (
           <div key={index} className="flex items-center gap-2">
-            <div className="flex-grow space-y-2">
+            <div className="flex-grow space-y-1">
               <label className="block text-xs font-medium text-gray-600">
                 Mass Input #{index + 1} (kg)
               </label>
-              <input
+              <Input
                 type="number"
                 min="0"
                 step="0.01"
-                className="input-field w-full"
                 placeholder="0.00"
-                value={value}
+                value={value || ''}
                 onChange={(e) => handleMassInputChange(index, parseFloat(e.target.value) || 0)}
                 disabled={isLocked}
                 required={index === 0}
               />
             </div>
             {!isLocked && massInputs.length > 1 && (
-              <button
+              <Button
                 type="button"
-                className="mt-6 p-1 text-red-500 hover:bg-red-50 rounded-full"
+                variant="ghost"
+                size="icon"
                 onClick={() => removeMassInput(index)}
+                className="mt-6 h-9 w-9 text-red-500 hover:text-red-600 hover:bg-red-50"
               >
-                <X className="h-5 w-5" />
-              </button>
+                <Trash className="h-4 w-4" />
+              </Button>
             )}
           </div>
         ))}
         
-        {!isLocked && (
-          <button
-            type="button"
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            onClick={addMassInput}
-          >
-            + Add Another Mass Input
-          </button>
-        )}
-        
         {massInputs.length > 1 && (
           <div className="p-3 bg-gray-50 rounded-md">
             <p className="text-sm font-medium">
-              Total Input Mass: {calculateTotalInputMass()} kg
+              Total Input Mass: {calculateTotalInputMass().toFixed(2)} kg
             </p>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-xs font-medium text-gray-600">
-            Output Mass (kg)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="input-field w-full"
-            placeholder="0.00"
-            value={outputMass}
-            onChange={(e) => setOutputMass(e.target.value)}
-            disabled={isLocked}
-            required
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="space-y-2">
-          <label className="block text-xs font-medium text-gray-600">
-            Sticks Mass (kg)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="input-field w-full"
-            placeholder="0.00"
-            value={sticksMass}
-            onChange={(e) => setSticksMass(e.target.value)}
-            disabled={isLocked}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-xs font-medium text-gray-600">
-            F8 Mass (kg)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="input-field w-full"
-            placeholder="0.00"
-            value={f8Mass}
-            onChange={(e) => setF8Mass(e.target.value)}
-            disabled={isLocked}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-xs font-medium text-gray-600">
-            Dust Mass (kg)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            className="input-field w-full"
-            placeholder="0.00"
-            value={dustMass}
-            onChange={(e) => setDustMass(e.target.value)}
-            disabled={isLocked}
-          />
-        </div>
-      </div>
+      {/* Multi output entries */}
+      <MultiOutputEntryForm 
+        isLocked={isLocked} 
+        onChange={setOutputEntries} 
+        initialEntries={outputEntries}
+      />
 
       <div className="space-y-2">
         <label className="block text-xs font-medium text-gray-600">
           Remarks (Optional)
         </label>
-        <textarea
-          className="input-field w-full"
+        <Textarea
           placeholder="Any additional comments"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
@@ -378,29 +317,31 @@ const MachineWorkEntryForm = ({
 
       {!isLocked && (
         <div className="flex justify-end gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleCancel}
-            className="btn-secondary flex items-center"
+            className="flex items-center"
           >
             <X className="h-4 w-4 mr-2" />
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className="btn-primary flex items-center"
+            className="flex items-center"
           >
             <Save className="h-4 w-4 mr-2" />
             Save
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="destructive"
             onClick={handleLock}
-            className="btn-warning flex items-center"
+            className="flex items-center"
           >
             <Lock className="h-4 w-4 mr-2" />
             Save & Lock
-          </button>
+          </Button>
         </div>
       )}
 
