@@ -1,7 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { supabase } from '../lib/supabase';
-import { Employee } from './EmployeeContext';
+
+// Import Employee type properly
+export type Employee = {
+  id: string;
+  name: string | null;
+  surname: string | null;
+  idno: string | null;
+  contact: string | null;
+  address: string | null;
+  gender: string | null;
+  nextofkinname: string | null;
+  nextofkincontact: string | null;
+};
 
 export type ScheduleItem = {
   id: string;
@@ -147,8 +159,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
           sticksMass: entry.sticksmass,
           f8Mass: entry.f8mass,
           dustMass: entry.dustmass,
-          massInputs: entry.massinputs,
-          cartons: entry.cartons // Updated to include cartons
+          massInputs: entry.mass_inputs,
+          cartons: entry.cartons
         }));
         
         setWorkEntries(formattedEntries as WorkEntry[]);
@@ -329,6 +341,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Adding work entry with data:', newEntry);
       
+      // Convert JavaScript camelCase property names to snake_case database column names
       const workEntryRecord = {
         id: newEntry.id,
         scheduleid: newEntry.scheduleId,
@@ -337,28 +350,31 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         quantity: newEntry.quantity,
         remarks: newEntry.remarks,
         recordedat: newEntry.recordedAt.toISOString(),
-        scaleentries: newEntry.scaleEntries,
-        totalsticks: newEntry.totalSticks,
-        fm: newEntry.fm,
+        scaleentries: newEntry.scaleEntries || null,
+        totalsticks: newEntry.totalSticks || null,
+        fm: newEntry.fm || null,
         locked: newEntry.locked || false,
-        outputmass: newEntry.outputMass,
-        sticksmass: newEntry.sticksMass,
-        f8mass: newEntry.f8Mass,
-        dustmass: newEntry.dustMass,
-        massinputs: newEntry.massInputs,
-        cartons: newEntry.cartons 
+        outputmass: newEntry.outputMass || null,
+        sticksmass: newEntry.sticksMass || null,
+        f8mass: newEntry.f8Mass || null,
+        dustmass: newEntry.dustMass || null,
+        mass_inputs: newEntry.massInputs || null,
+        cartons: newEntry.cartons || null
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('work_entries')
-        .insert([workEntryRecord]);
+        .insert([workEntryRecord])
+        .select();
       
       if (error) {
         console.error('Supabase error adding work entry:', error);
         throw error;
       }
+      
+      console.log('Successfully inserted work entry, response:', data);
       
       setWorkEntries(prev => [...prev, newEntry]);
       toast.success(`Work entry recorded successfully`);
@@ -401,8 +417,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       if (updatedEntry.f8Mass !== undefined) updateData.f8mass = updatedEntry.f8Mass;
       if (updatedEntry.dustMass !== undefined) updateData.dustmass = updatedEntry.dustMass;
       if (updatedEntry.scaleEntries !== undefined) updateData.scaleentries = updatedEntry.scaleEntries;
-      if (updatedEntry.massInputs !== undefined) updateData.massinputs = updatedEntry.massInputs;
-      if (updatedEntry.cartons !== undefined) updateData.cartons = updatedEntry.cartons; // Updated to include cartons
+      if (updatedEntry.massInputs !== undefined) updateData.mass_inputs = updatedEntry.massInputs;
+      if (updatedEntry.cartons !== undefined) updateData.cartons = updatedEntry.cartons;
       
       delete updateData.outputMass;
       delete updateData.sticksMass;
