@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { toast } from "sonner";
 import { supabase } from '../lib/supabase';
 
-// Import Employee type properly
 export type Employee = {
   id: string;
   name: string | null;
@@ -51,13 +50,11 @@ export type WorkEntry = {
   totalSticks?: number;
   fm?: number;
   locked?: boolean;
-  // Machine specific fields
   outputMass?: number;
   sticksMass?: number;
   f8Mass?: number;
   dustMass?: number;
   massInputs?: number[];
-  // Bailing/Crushing Sticks specific fields
   cartons?: {
     number: number;
     mass: number;
@@ -235,27 +232,27 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('No entries found to lock');
       }
       
+      console.log(`Found ${entriesToLock.length} entries to lock for employee ${employeeId}`);
+      
       for (const entry of entriesToLock) {
-        const { error } = await supabase
+        console.log(`Locking entry with ID: ${entry.id}`);
+        
+        const { data, error } = await supabase
           .from('work_entries')
           .update({ locked: true })
-          .eq('id', entry.id);
+          .eq('id', entry.id)
+          .select();
         
         if (error) {
           console.error('Error locking entry:', error);
           throw error;
         }
+        
+        console.log('Lock update response:', data);
       }
       
-      setWorkEntries(prev => 
-        prev.map(entry => 
-          (entry.scheduleId === scheduleId && 
-           entry.scheduleItemId === scheduleItemId && 
-           entry.employeeId === employeeId)
-            ? { ...entry, locked: true }
-            : entry
-        )
-      );
+      // Refresh work entries to get updated locked status
+      await fetchWorkEntries();
       
       toast.success('Worker entries have been locked');
     } catch (error) {
@@ -341,7 +338,6 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       
       console.log('Adding work entry with data:', newEntry);
       
-      // Convert JavaScript camelCase property names to snake_case database column names
       const workEntryRecord = {
         id: newEntry.id,
         scheduleid: newEntry.scheduleId,
@@ -350,16 +346,16 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         quantity: newEntry.quantity,
         remarks: newEntry.remarks,
         recordedat: newEntry.recordedAt.toISOString(),
-        scaleentries: newEntry.scaleEntries || null,
-        totalsticks: newEntry.totalSticks || null,
-        fm: newEntry.fm || null,
+        scaleentries: newEntry.scaleEntries,
+        totalsticks: newEntry.totalSticks,
+        fm: newEntry.fm,
         locked: newEntry.locked || false,
-        outputmass: newEntry.outputMass || null,
-        sticksmass: newEntry.sticksMass || null,
-        f8mass: newEntry.f8Mass || null,
-        dustmass: newEntry.dustMass || null,
-        mass_inputs: newEntry.massInputs || null,
-        cartons: newEntry.cartons || null
+        outputmass: newEntry.outputMass,
+        sticksmass: newEntry.sticksMass,
+        f8mass: newEntry.f8Mass,
+        dustmass: newEntry.dustMass,
+        mass_inputs: newEntry.massInputs,
+        cartons: newEntry.cartons
       };
       
       console.log('Final work entry record to insert:', workEntryRecord);
@@ -407,41 +403,45 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         totalSticks = updatedEntry.scaleEntries.reduce((sum, se) => sum + (se.sticks || 0), 0);
       }
       
-      const updateData: any = {
-        ...updatedEntry,
-        totalsticks: totalSticks
-      };
+      const updateData: any = {};
       
+      if (updatedEntry.quantity !== undefined) updateData.quantity = updatedEntry.quantity;
+      if (updatedEntry.remarks !== undefined) updateData.remarks = updatedEntry.remarks;
+      if (updatedEntry.scaleEntries !== undefined) updateData.scaleentries = updatedEntry.scaleEntries;
+      if (totalSticks !== undefined) updateData.totalsticks = totalSticks;
+      if (updatedEntry.fm !== undefined) updateData.fm = updatedEntry.fm;
+      if (updatedEntry.locked !== undefined) updateData.locked = updatedEntry.locked;
       if (updatedEntry.outputMass !== undefined) updateData.outputmass = updatedEntry.outputMass;
       if (updatedEntry.sticksMass !== undefined) updateData.sticksmass = updatedEntry.sticksMass;
       if (updatedEntry.f8Mass !== undefined) updateData.f8mass = updatedEntry.f8Mass;
       if (updatedEntry.dustMass !== undefined) updateData.dustmass = updatedEntry.dustMass;
-      if (updatedEntry.scaleEntries !== undefined) updateData.scaleentries = updatedEntry.scaleEntries;
       if (updatedEntry.massInputs !== undefined) updateData.mass_inputs = updatedEntry.massInputs;
       if (updatedEntry.cartons !== undefined) updateData.cartons = updatedEntry.cartons;
       
-      delete updateData.outputMass;
-      delete updateData.sticksMass;
-      delete updateData.f8Mass;
-      delete updateData.dustMass;
-      delete updateData.massInputs;
-      
       console.log('Updating work entry:', entryId, 'with data:', updateData);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('work_entries')
         .update(updateData)
-        .eq('id', entryId);
+        .eq('id', entryId)
+        .select();
       
       if (error) {
         console.error('Supabase error updating work entry:', error);
         throw error;
       }
       
+      console.log('Update response:', data);
+      
+      const updatedEntryWithTotalSticks = { ...updatedEntry };
+      if (totalSticks !== undefined) {
+        updatedEntryWithTotalSticks.totalSticks = totalSticks;
+      }
+      
       setWorkEntries(prev => 
         prev.map(entry => 
           entry.id === entryId
-            ? { ...entry, ...updatedEntry, totalSticks }
+            ? { ...entry, ...updatedEntryWithTotalSticks }
             : entry
         )
       );
@@ -565,7 +565,8 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       const entriesToUnlock = workEntries.filter(
         entry => entry.scheduleId === scheduleId && 
                 entry.scheduleItemId === scheduleItemId && 
-                entry.employeeId === employeeId
+                entry.employeeId === employeeId &&
+                entry.locked === true
       );
       
       if (entriesToUnlock.length === 0) {
@@ -573,27 +574,27 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
+      console.log(`Found ${entriesToUnlock.length} entries to unlock for employee ${employeeId}`);
+      
       for (const entry of entriesToUnlock) {
-        const { error } = await supabase
+        console.log(`Unlocking entry with ID: ${entry.id}`);
+        
+        const { data, error } = await supabase
           .from('work_entries')
           .update({ locked: false })
-          .eq('id', entry.id);
+          .eq('id', entry.id)
+          .select();
         
         if (error) {
           console.error('Error unlocking entry:', error);
           throw error;
         }
+        
+        console.log('Unlock update response:', data);
       }
       
-      setWorkEntries(prev => 
-        prev.map(entry => 
-          (entry.scheduleId === scheduleId && 
-           entry.scheduleItemId === scheduleItemId && 
-           entry.employeeId === employeeId)
-            ? { ...entry, locked: false }
-            : entry
-        )
-      );
+      // Refresh work entries to get updated locked status
+      await fetchWorkEntries();
       
       toast.success('Worker entries have been unlocked');
       return true;
