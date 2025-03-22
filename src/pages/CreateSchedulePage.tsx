@@ -15,14 +15,19 @@ const PREDEFINED_TASKS = [
   "Bailing Lamina", 
   "Machine",
   "Bailing Sticks",
-  "Grading",
   "Ticket Based Work"
 ];
 
 const CreateSchedulePage = () => {
   const navigate = useNavigate();
   const { employees } = useEmployees();
-  const { addSchedule, isEmployeeAssignedForDate, isLoading: isScheduleLoading } = useSchedules();
+  const { 
+    addSchedule, 
+    isEmployeeAssignedForDate, 
+    isLoading: isScheduleLoading, 
+    schedules 
+  } = useSchedules();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -39,15 +44,45 @@ const CreateSchedulePage = () => {
       quantity: 0
     }
   ]);
+  const [tasksScheduledForDay, setTasksScheduledForDay] = useState<string[]>([]);
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
     setScheduleDate(today);
   }, []);
 
+  // Check which tasks are already scheduled for the selected date
+  useEffect(() => {
+    const tasksForSelectedDate = schedules
+      .filter(schedule => schedule.date === scheduleDate)
+      .flatMap(schedule => schedule.items.map(item => item.task));
+    
+    // Get unique tasks
+    const uniqueTasksScheduled = [...new Set(tasksForSelectedDate)];
+    setTasksScheduledForDay(uniqueTasksScheduled);
+    
+    // Update the task selection if it's already scheduled
+    setScheduleItems(prev => {
+      return prev.map(item => {
+        if (uniqueTasksScheduled.includes(item.task)) {
+          // Find the first available task that's not scheduled
+          const availableTask = PREDEFINED_TASKS.find(task => !uniqueTasksScheduled.includes(task));
+          return {
+            ...item,
+            task: availableTask || item.task // Keep the current task if no alternatives
+          };
+        }
+        return item;
+      });
+    });
+  }, [scheduleDate, schedules]);
+
   const handleAddItem = () => {
+    // Find first non-scheduled task
+    const availableTask = PREDEFINED_TASKS.find(task => !tasksScheduledForDay.includes(task)) || PREDEFINED_TASKS[0];
+    
     setScheduleItems([...scheduleItems, { 
-      task: PREDEFINED_TASKS[0],
+      task: availableTask,
       workers: 0, 
       employeeIds: [],
       targetMass: 0,
@@ -174,6 +209,11 @@ const CreateSchedulePage = () => {
     }, 1200);
   };
 
+  // Check if a task is already scheduled for the selected date
+  const isTaskScheduledForDay = (task: string) => {
+    return tasksScheduledForDay.includes(task);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -246,8 +286,13 @@ const CreateSchedulePage = () => {
                             onChange={(e) => handleItemChange(index, "task", e.target.value)}
                           >
                             {PREDEFINED_TASKS.map((task) => (
-                              <option key={task} value={task}>
-                                {task}
+                              <option 
+                                key={task} 
+                                value={task}
+                                disabled={isTaskScheduledForDay(task) && item.task !== task}
+                                className={isTaskScheduledForDay(task) && item.task !== task ? "text-gray-400" : ""}
+                              >
+                                {task} {isTaskScheduledForDay(task) ? "(Already Scheduled)" : ""}
                               </option>
                             ))}
                           </select>
