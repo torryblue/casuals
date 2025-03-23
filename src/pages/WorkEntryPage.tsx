@@ -131,7 +131,8 @@ const WorkEntryPage = () => {
         scheduleItemId: selectedScheduleItem.id,
         employeeId: selectedEmployeeId,
         quantity: finalQuantity,
-        remarks
+        remarks,
+        entryType: ""
       });
       
       setQuantity("");

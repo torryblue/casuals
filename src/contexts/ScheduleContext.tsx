@@ -34,6 +34,7 @@ export type Schedule = {
 };
 
 export type WorkEntry = {
+  entryType: string;
   id: string;
   scheduleId: string;
   scheduleItemId: string;
