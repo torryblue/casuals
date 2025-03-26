@@ -104,6 +104,45 @@ const MasterReports = () => {
     fetchWorkEntries();
   }, []);
 
+  // Helper function to format cartons data
+  const formatCartonsData = (cartons: any) => {
+    if (!cartons) return '-';
+    
+    try {
+      // If cartons is already an object, use it directly
+      const cartonsObj = typeof cartons === 'string' ? JSON.parse(cartons) : cartons;
+      
+      // Check if it's an array or object and format accordingly
+      if (Array.isArray(cartonsObj)) {
+        return cartonsObj.map((carton, index) => (
+          <div key={index} className="mb-1 last:mb-0">
+            {Object.entries(carton).map(([key, value]) => (
+              <div key={key} className="text-xs">
+                <span className="font-medium">{key}:</span> {String(value)}
+              </div>
+            ))}
+          </div>
+        ));
+      } else if (typeof cartonsObj === 'object') {
+        return (
+          <div>
+            {Object.entries(cartonsObj).map(([key, value]) => (
+              <div key={key} className="text-xs">
+                <span className="font-medium">{key}:</span> {String(value)}
+              </div>
+            ))}
+          </div>
+        );
+      }
+      
+      // Fallback for other formats
+      return JSON.stringify(cartonsObj);
+    } catch (e) {
+      console.error('Error parsing cartons data:', e);
+      return 'Invalid format';
+    }
+  };
+
   // Filter work entries based on selected employee and date range
   const filteredWorkEntries = workEntries.filter(entry => {
     const entryDate = new Date(entry.recordedat);
@@ -213,6 +252,7 @@ const MasterReports = () => {
                   <TableHead className="font-semibold">Sticks Mass</TableHead>
                   <TableHead className="font-semibold">F8 Mass</TableHead>
                   <TableHead className="font-semibold">Dust Mass</TableHead>
+                  <TableHead className="font-semibold">Cartons</TableHead>
                   <TableHead className="font-semibold">Entry Type</TableHead>
                   <TableHead className="font-semibold">Recorded At</TableHead>
                   <TableHead className="font-semibold">Locked</TableHead>
@@ -237,6 +277,9 @@ const MasterReports = () => {
                     <TableCell>{entry.sticksmass}</TableCell>
                     <TableCell>{entry.f8mass}</TableCell>
                     <TableCell>{entry.dustmass}</TableCell>
+                    <TableCell className="max-w-[200px] whitespace-normal">
+                      {formatCartonsData(entry.cartons)}
+                    </TableCell>
                     <TableCell>{entry.entry_type}</TableCell>
                     <TableCell>{new Date(entry.recordedat).toLocaleString()}</TableCell>
                     <TableCell>
