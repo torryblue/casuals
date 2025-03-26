@@ -94,7 +94,8 @@ const TicketWorkEntryForm = ({
       scheduleItemId,
       employeeId,
       quantity: 1, // Default quantity for ticket-based work
-      remarks
+      remarks,
+      entryType: ''
     });
     
     // Reset form
@@ -119,7 +120,8 @@ const TicketWorkEntryForm = ({
       scheduleItemId,
       employeeId,
       quantity: 1, // Default quantity for ticket-based work
-      remarks: `Duty: ${dutyName}\n\nRemarks: ${remarks}`
+      remarks: `Duty: ${dutyName}\n\nRemarks: ${remarks}`,
+      entryType: ''
     });
     
     // Lock the employee entries

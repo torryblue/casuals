@@ -1,281 +1,258 @@
+import React, { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
 
-import React, { useState } from "react";
-import AppLayout from "@/components/AppLayout";
-import { useSchedules } from "@/contexts/ScheduleContext";
-import { useEmployees } from "@/contexts/EmployeeContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { ArrowLeft, Search, User, BarChart2, FileText, Scale } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+interface WorkEntry {
+  id: string;
+  scheduleid: string;
+  scheduleitemid: string;
+  employeeid: string;
+  quantity: number;
+  remarks?: string;
+  recordedat: string;
+  scaleentries?: any;
+  totalsticks?: number;
+  fm?: number;
+  locked?: boolean;
+  outputmass?: number;
+  sticksmass?: number;
+  f8mass?: number;
+  dustmass?: number;
+  cartons?: any;
+  duty_name?: string;
+  mass_inputs?: any;
+  output_entries?: any;
+  entry_type?: string;
+  saved_progress?: any;
+  employee_name?: string;
+  employee_surname?: string;
+}
 
 const MasterReports = () => {
-  const { schedules, workEntries } = useSchedules();
-  const { employees } = useEmployees();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const [workEntries, setWorkEntries] = useState<WorkEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Filter states
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
-  const [selectedTask, setSelectedTask] = useState<string>("");
   const [dateRange, setDateRange] = useState({
-    start: new Date(new Date().setDate(1)).toISOString().split('T')[0], // First day of current month
-    end: new Date().toISOString().split('T')[0] // Today
+    start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
   });
   
-  // Check if user is admin, if not, redirect to dashboard
-  if (user?.role !== 'admin') {
-    navigate('/');
-    return null;
-  }
+  // Derived states for filters
+  const [allEmployees, setAllEmployees] = useState<{id: string, name: string}[]>([]);
 
-  // Get all unique tasks from schedules
-  const allTasks = Array.from(
-    new Set(
-      schedules.flatMap(schedule => 
-        schedule.items.map(item => item.task)
-      )
-    )
-  ).sort();
+  useEffect(() => {
+    const fetchWorkEntries = async () => {
+      try {
+        setLoading(true);
+        
+        // Join with employees table to get employee names
+        const { data, error } = await supabase
+          .from('work_entries')
+          .select(`
+            *,
+            employees:employeeid (
+              name,
+              surname
+            )
+          `);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          // Format data to include employee names
+          const formattedData = data.map(entry => ({
+            ...entry,
+            employee_name: entry.employees?.name || 'Unknown',
+            employee_surname: entry.employees?.surname || '',
+          }));
+          
+          setWorkEntries(formattedData);
+          
+          // Extract unique employees for the filter
+          const uniqueEmployees = Array.from(
+            new Set(formattedData.map(entry => entry.employeeid))
+          ).map(id => {
+            const entry = formattedData.find(e => e.employeeid === id);
+            return {
+              id: id as string,
+              name: `${entry?.employee_name || ''} ${entry?.employee_surname || ''}`.trim()
+            };
+          });
+          setAllEmployees(uniqueEmployees);
+        }
+      } catch (err) {
+        console.error('Error fetching work entries:', err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Filter work entries based on selected employee, task, and date range
+    fetchWorkEntries();
+  }, []);
+
+  // Filter work entries based on selected employee and date range
   const filteredWorkEntries = workEntries.filter(entry => {
-    const entryDate = new Date(entry.recordedAt);
+    const entryDate = new Date(entry.recordedat);
     const startDate = new Date(dateRange.start);
     const endDate = new Date(dateRange.end);
     endDate.setHours(23, 59, 59, 999); // End of the day
     
-    // Get the task for this entry
-    const schedule = schedules.find(s => s.id === entry.scheduleId);
-    const scheduleItem = schedule?.items.find(item => item.id === entry.scheduleItemId);
-    const taskMatches = !selectedTask || (scheduleItem?.task === selectedTask);
+    const matchesEmployee = selectedEmployee === "" || entry.employeeid === selectedEmployee;
+    const matchesDate = entryDate >= startDate && entryDate <= endDate;
     
-    return (
-      (!selectedEmployee || entry.employeeId === selectedEmployee) &&
-      taskMatches &&
-      entryDate >= startDate &&
-      entryDate <= endDate
-    );
+    return matchesEmployee && matchesDate;
   });
-
+  
   // Group work entries by employee
   const entriesByEmployee = filteredWorkEntries.reduce<Record<string, typeof filteredWorkEntries>>(
     (acc, entry) => {
-      if (!acc[entry.employeeId]) {
-        acc[entry.employeeId] = [];
+      if (!acc[entry.employeeid]) {
+        acc[entry.employeeid] = [];
       }
-      acc[entry.employeeId].push(entry);
+      acc[entry.employeeid].push(entry);
       return acc;
     }, 
     {}
   );
 
-  // Helper function to get employee name by ID
-  const getEmployeeName = (id: string) => {
-    const employee = employees.find(emp => emp.id === id);
-    return employee ? `${employee.name} ${employee.surname}` : 'Unknown';
-  };
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-[50vh] text-lg">Loading work entries...</div>;
+  }
 
-  // Helper function to get schedule details by ID
-  const getScheduleDetails = (scheduleId: string, itemId: string) => {
-    const schedule = schedules.find(s => s.id === scheduleId);
-    if (!schedule) return { date: 'Unknown', task: 'Unknown', targetMass: undefined };
-    
-    const item = schedule.items.find(i => i.id === itemId);
-    return {
-      date: schedule.date,
-      task: item?.task || 'Unknown',
-      targetMass: item?.targetMass
-    };
-  };
-
-  // Helper function to format the quantity or display N/A for tickets
-  const formatQuantity = (entry, details) => {
-    if (details.task.toLowerCase() === 'tickets') {
-      return 'N/A';
-    }
-    return `${entry.quantity}`;
-  };
-
-  // Helper function to get in scale total for a stripping entry
-  const getInScaleTotal = (entry) => {
-    if (entry.scaleEntries && Array.isArray(entry.scaleEntries)) {
-      return Math.round(entry.scaleEntries.reduce((sum, se) => sum + (se.inValue || 0), 0));
-    }
-    return 'N/A';
-  };
+  if (error) {
+    return <div className="flex justify-center items-center min-h-[50vh] text-red-500">Error: {error}</div>;
+  }
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="flex items-center space-x-4">
-          <button 
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-500" />
-          </button>
-          <h1 className="text-2xl font-medium text-gray-800">Work Reports</h1>
-        </div>
-
-        <div className="glass-card p-4 element-transition">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {/* Employee filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
-              <select
-                className="input-field w-full"
-                value={selectedEmployee}
-                onChange={(e) => setSelectedEmployee(e.target.value)}
-              >
-                <option value="">All Employees</option>
-                {employees.map(employee => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name} {employee.surname}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Task filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Task</label>
-              <select
-                className="input-field w-full"
-                value={selectedTask}
-                onChange={(e) => setSelectedTask(e.target.value)}
-              >
-                <option value="">All Tasks</option>
-                {allTasks.map(task => (
-                  <option key={task} value={task}>
-                    {task}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Date range filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                className="input-field w-full"
-                value={dateRange.start}
-                onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input
-                type="date"
-                className="input-field w-full"
-                value={dateRange.end}
-                onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-              />
-            </div>
-          </div>
-
-          {/* Display summary statistics */}
-          <div className="mb-6">
-            <h2 className="text-lg font-medium text-gray-800 mb-3">Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-sm text-gray-500">Total Work Entries</p>
-                <p className="text-2xl font-medium">{filteredWorkEntries.length}</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-sm text-gray-500">Employees Working</p>
-                <p className="text-2xl font-medium">{Object.keys(entriesByEmployee).length}</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <p className="text-sm text-gray-500">Average Quantity per Entry</p>
-                <p className="text-2xl font-medium">
-                  {filteredWorkEntries.length > 0 
-                    ? (filteredWorkEntries.reduce((sum, entry) => sum + entry.quantity, 0) / filteredWorkEntries.length).toFixed(2)
-                    : '0.00'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Display work entries */}
+    <div className="container mx-auto py-6 px-4">
+      <div className="flex items-center gap-3 mb-6">
+        <button 
+          onClick={() => window.history.back()}
+          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5 text-gray-500" />
+        </button>
+        <h1 className="text-2xl font-medium text-gray-800">Work Reports</h1>
+      </div>
+      
+      {/* Filters section */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <h2 className="text-lg font-medium mb-4">Filters</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Employee filter */}
           <div>
-            <h2 className="text-lg font-medium text-gray-800 mb-3">Work Entries</h2>
-            {Object.entries(entriesByEmployee).length > 0 ? (
-              <div className="space-y-6">
-                {Object.entries(entriesByEmployee).map(([employeeId, entries]) => (
-                  <div key={employeeId} className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-md font-medium text-gray-800 mb-2 flex items-center">
-                      <User className="h-4 w-4 mr-2 text-gray-500" />
-                      {getEmployeeName(employeeId)}
-                    </h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-gray-50">
-                            <th className="px-4 py-2 text-left">Date</th>
-                            <th className="px-4 py-2 text-left">Task</th>
-                            {selectedTask?.toLowerCase() === "stripping" || !selectedTask ? (
-                              <>
-                                <th className="px-4 py-2 text-left">Target Mass</th>
-                                <th className="px-4 py-2 text-left">In Scale Total</th>
-                                <th className="px-4 py-2 text-left">Out Scale Mass</th>
-                                <th className="px-4 py-2 text-left">Variance</th>
-                                <th className="px-4 py-2 text-left">Total Sticks</th>
-                                <th className="px-4 py-2 text-left">FM</th>
-                              </>
-                            ) : (
-                              <th className="px-4 py-2 text-left">Quantity</th>
-                            )}
-                            <th className="px-4 py-2 text-left">Remarks</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {entries.map((entry) => {
-                            const details = getScheduleDetails(entry.scheduleId, entry.scheduleItemId);
-                            const isStripping = details.task.toLowerCase() === "stripping";
-                            
-                            return (
-                              <tr key={entry.id} className="border-t border-gray-100">
-                                <td className="px-4 py-2">{details.date}</td>
-                                <td className="px-4 py-2">{details.task}</td>
-                                
-                                {isStripping || !selectedTask ? (
-                                  <>
-                                    <td className="px-4 py-2">{details.targetMass || 'N/A'}</td>
-                                    <td className="px-4 py-2">{getInScaleTotal(entry)}</td>
-                                    <td className="px-4 py-2">{entry.quantity}</td>
-                                    <td className="px-4 py-2">
-                                      {details.targetMass ? (
-                                        <span className={entry.quantity >= (details.targetMass || 0) ? 'text-green-600' : 'text-red-600'}>
-                                          {entry.quantity - (details.targetMass || 0)}
-                                        </span>
-                                      ) : 'N/A'}
-                                    </td>
-                                    <td className="px-4 py-2">{entry.totalSticks || 'N/A'}</td>
-                                    <td className="px-4 py-2">{entry.fm || 'N/A'}</td>
-                                  </>
-                                ) : (
-                                  <td className="px-4 py-2">{formatQuantity(entry, details)}</td>
-                                )}
-                                
-                                <td className="px-4 py-2">{entry.remarks}</td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="py-8 text-center">
-                <BarChart2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500">No work entries found for the selected criteria.</p>
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Employee</label>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2"
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+            >
+              <option value="">All Employees</option>
+              {allEmployees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Date range filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <input
+              type="date"
+              className="w-full rounded-md border border-input bg-background px-3 py-2"
+              value={dateRange.start}
+              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <input
+              type="date"
+              className="w-full rounded-md border border-input bg-background px-3 py-2"
+              value={dateRange.end}
+              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+            />
           </div>
         </div>
       </div>
-    </AppLayout>
+      
+      {filteredWorkEntries.length === 0 ? (
+        <p className="text-center text-gray-500 my-10">No work entries found matching the selected filters.</p>
+      ) : (
+        <div className="rounded-md border shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="font-semibold">ID</TableHead>
+                  <TableHead className="font-semibold">Employee</TableHead>
+                  <TableHead className="font-semibold">Schedule ID</TableHead>
+                  <TableHead className="font-semibold">Schedule Item ID</TableHead>
+                  <TableHead className="font-semibold">Duty</TableHead>
+                  <TableHead className="font-semibold">Quantity</TableHead>
+                  <TableHead className="font-semibold">Total Sticks</TableHead>
+                  <TableHead className="font-semibold">FM</TableHead>
+                  <TableHead className="font-semibold">Output Mass</TableHead>
+                  <TableHead className="font-semibold">Sticks Mass</TableHead>
+                  <TableHead className="font-semibold">F8 Mass</TableHead>
+                  <TableHead className="font-semibold">Dust Mass</TableHead>
+                  <TableHead className="font-semibold">Entry Type</TableHead>
+                  <TableHead className="font-semibold">Recorded At</TableHead>
+                  <TableHead className="font-semibold">Locked</TableHead>
+                  <TableHead className="font-semibold">Remarks</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredWorkEntries.map((entry, index) => (
+                  <TableRow 
+                    key={entry.id} 
+                    className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  >
+                    <TableCell className="font-medium">{entry.id}</TableCell>
+                    <TableCell>{entry.employee_name} {entry.employee_surname}</TableCell>
+                    <TableCell>{entry.scheduleid}</TableCell>
+                    <TableCell>{entry.scheduleitemid}</TableCell>
+                    <TableCell>{entry.duty_name}</TableCell>
+                    <TableCell>{entry.quantity}</TableCell>
+                    <TableCell>{entry.totalsticks}</TableCell>
+                    <TableCell>{entry.fm}</TableCell>
+                    <TableCell>{entry.outputmass}</TableCell>
+                    <TableCell>{entry.sticksmass}</TableCell>
+                    <TableCell>{entry.f8mass}</TableCell>
+                    <TableCell>{entry.dustmass}</TableCell>
+                    <TableCell>{entry.entry_type}</TableCell>
+                    <TableCell>{new Date(entry.recordedat).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${entry.locked ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
+                        {entry.locked ? 'Yes' : 'No'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{entry.remarks || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

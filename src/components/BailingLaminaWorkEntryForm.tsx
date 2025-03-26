@@ -147,7 +147,8 @@ const BailingLaminaWorkEntryForm = ({
       remarks,
       outputMass: calculateTotalOutputMass(),
       massInputs,
-      cartons
+      cartons,
+      entryType: ''
     });
     
     // Reset form
@@ -176,7 +177,8 @@ const BailingLaminaWorkEntryForm = ({
       remarks,
       outputMass: calculateTotalOutputMass(),
       massInputs,
-      cartons
+      cartons,
+      entryType: ''
     });
     
     // Lock the employee entries

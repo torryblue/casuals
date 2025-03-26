@@ -131,7 +131,8 @@ const BailingStickWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalMass(),
       remarks,
-      cartons
+      cartons,
+      entryType: ''
     });
     
     // Reset form
@@ -162,7 +163,8 @@ const BailingStickWorkEntryForm = ({
       employeeId,
       quantity: calculateTotalMass(),
       remarks,
-      cartons
+      cartons,
+      entryType: ''
     });
     
     // Lock the employee entries

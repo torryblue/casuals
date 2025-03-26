@@ -149,7 +149,8 @@ const StrippingWorkEntryForm = ({
       remarks,
       scaleEntries,
       fm,
-      totalSticks
+      totalSticks,
+      entryType: ""
     });
     
     // Lock the employee entries

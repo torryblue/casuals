@@ -132,7 +132,8 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
       sticksMass: calculateTotalByType('sticks'),
       f8Mass: calculateTotalByType('f8'),
       dustMass: calculateTotalByType('dust'),
-      massInputs
+      massInputs,
+      entryType: ''
     });
     
     // Reset form
@@ -163,7 +164,8 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
       sticksMass: calculateTotalByType('sticks'),
       f8Mass: calculateTotalByType('f8'),
       dustMass: calculateTotalByType('dust'),
-      massInputs
+      massInputs,
+      entryType: ''
     });
     
     // Lock the employee entries

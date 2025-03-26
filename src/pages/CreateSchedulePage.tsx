@@ -345,15 +345,6 @@ const CreateSchedulePage = () => {
                             onChange={(data) => handleMachineDataChange(index, data)}
                           />
                         </div>
-                      ) : item.task === "Grading" ? (
-                        <div className="mt-4">
-                          <GradingScheduleForm
-                            employeeIds={item.employeeIds}
-                            numberOfBales={item.numberOfBales}
-                            classGrades={item.classGrades}
-                            onChange={(data) => handleGradingDataChange(index, data)}
-                          />
-                        </div>
                       ) : (
                         <div className="mt-4 space-y-2">
                           <label className="block text-xs font-medium text-gray-600">
