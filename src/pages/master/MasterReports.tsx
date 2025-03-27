@@ -30,7 +30,6 @@ interface WorkEntry {
   duty_name?: string;
   mass_inputs?: any;
   output_entries?: any;
-  entry_type?: string;
   saved_progress?: any;
   employee_name?: string;
   employee_surname?: string;
@@ -139,6 +138,45 @@ const MasterReports = () => {
       return JSON.stringify(cartonsObj);
     } catch (e) {
       console.error('Error parsing cartons data:', e);
+      return 'Invalid format';
+    }
+  };
+
+  // Helper function to format scale entries data
+  const formatScaleEntries = (scaleentries: any) => {
+    if (!scaleentries) return '-';
+    
+    try {
+      // If scaleentries is already an object, use it directly
+      const entriesObj = typeof scaleentries === 'string' ? JSON.parse(scaleentries) : scaleentries;
+      
+      // Check if it's an array or object and format accordingly
+      if (Array.isArray(entriesObj)) {
+        return entriesObj.map((entry, index) => (
+          <div key={index} className="mb-1 last:mb-0">
+            {Object.entries(entry).map(([key, value]) => (
+              <div key={key} className="text-xs">
+                <span className="font-medium">{key}:</span> {String(value)}
+              </div>
+            ))}
+          </div>
+        ));
+      } else if (typeof entriesObj === 'object') {
+        return (
+          <div>
+            {Object.entries(entriesObj).map(([key, value]) => (
+              <div key={key} className="text-xs">
+                <span className="font-medium">{key}:</span> {String(value)}
+              </div>
+            ))}
+          </div>
+        );
+      }
+      
+      // Fallback for other formats
+      return JSON.stringify(entriesObj);
+    } catch (e) {
+      console.error('Error parsing scale entries data:', e);
       return 'Invalid format';
     }
   };
@@ -253,7 +291,7 @@ const MasterReports = () => {
                   <TableHead className="font-semibold">F8 Mass</TableHead>
                   <TableHead className="font-semibold">Dust Mass</TableHead>
                   <TableHead className="font-semibold">Cartons</TableHead>
-                  <TableHead className="font-semibold">Entry Type</TableHead>
+                  <TableHead className="font-semibold">Scale Entries</TableHead>
                   <TableHead className="font-semibold">Recorded At</TableHead>
                   <TableHead className="font-semibold">Locked</TableHead>
                   <TableHead className="font-semibold">Remarks</TableHead>
@@ -280,7 +318,9 @@ const MasterReports = () => {
                     <TableCell className="max-w-[200px] whitespace-normal">
                       {formatCartonsData(entry.cartons)}
                     </TableCell>
-                    <TableCell>{entry.entry_type}</TableCell>
+                    <TableCell className="max-w-[200px] whitespace-normal">
+                      {formatScaleEntries(entry.scaleentries)}
+                    </TableCell>
                     <TableCell>{new Date(entry.recordedat).toLocaleString()}</TableCell>
                     <TableCell>
                       <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${entry.locked ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`}>
