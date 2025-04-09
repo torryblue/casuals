@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
@@ -15,7 +14,7 @@ import { toast } from "sonner";
 
 const WorkEntryPage = () => {
   const navigate = useNavigate();
-  const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, updateWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
+  const { schedules, workEntries, addWorkEntry, updateWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
   const { employees } = useEmployees();
   const { user } = useAuth();
   
@@ -42,6 +41,13 @@ const WorkEntryPage = () => {
   const filteredScheduleItems = selectedSchedule?.items.filter(item => 
     item.employeeIds.includes(selectedEmployeeId)
   ) || [];
+  
+  // Get work entries for the selected employee in the selected schedule
+  const getWorkEntriesForEmployee = (scheduleId: string, employeeId: string): WorkEntry[] => {
+    return workEntries.filter(entry => 
+      entry.scheduleId === scheduleId && entry.employeeId === employeeId
+    );
+  };
   
   const employeeWorkEntries = selectedScheduleId && selectedEmployeeId
     ? getWorkEntriesForEmployee(selectedScheduleId, selectedEmployeeId)
@@ -118,12 +124,12 @@ const WorkEntryPage = () => {
     const finalQuantity = quantity === "" ? 0 : Number(quantity);
 
     if (editMode && editEntryId) {
-      const success = await updateWorkEntry(editEntryId, {
+      const result = await updateWorkEntry(editEntryId, {
         quantity: finalQuantity,
         remarks
       });
 
-      if (success) {
+      if (result) {
         toast.success("Work entry updated successfully");
         setEditMode(false);
         setEditEntryId(null);
@@ -293,11 +299,13 @@ const WorkEntryPage = () => {
               />
             ) : selectedScheduleItem?.task === "Bailing Sticks" ? (
               <BailingStickWorkEntryForm
-                      scheduleId={selectedScheduleId}
-                      scheduleItemId={selectedScheduleItem.id}
-                      employeeId={selectedEmployeeId}
-                      onEntryAdded={handleEntryAdded}
-                      existingEntries={scheduleItemEntries} targetMass={0}              />
+                scheduleId={selectedScheduleId}
+                scheduleItemId={selectedScheduleItem.id}
+                employeeId={selectedEmployeeId}
+                onEntryAdded={handleEntryAdded}
+                existingEntries={scheduleItemEntries}
+                targetMass={selectedScheduleItem.targetMass || 0}
+              />
             ) : (
               selectedScheduleItem && (
                 <div className="mt-4">

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
@@ -9,9 +10,9 @@ export interface Carton {
 }
 
 export interface OutputEntry {
-  id: number;
-  grade: string;
-  quantity: number;
+  id: string;
+  type: 'output' | 'sticks' | 'f8' | 'dust';
+  mass: number;
 }
 
 export interface WorkEntry {
@@ -26,7 +27,13 @@ export interface WorkEntry {
   cartons?: Carton[];
   massInputs?: number[];
   outputMass?: number;
+  sticksMass?: number;
+  f8Mass?: number;
+  dustMass?: number;
   outputEntries?: OutputEntry[];
+  scaleEntries?: { scaleNumber: number; inValue: number; outValue?: number; sticks?: number; }[];
+  totalSticks?: number;
+  fm?: number;
   entryType: string;
 }
 
@@ -42,6 +49,7 @@ export type Schedule = {
   id: string;
   date: string;
   items: ScheduleItem[];
+  createdAt?: string;
 };
 
 type ScheduleContextType = {
@@ -51,10 +59,17 @@ type ScheduleContextType = {
   updateSchedule: (id: string, date: string, items: Omit<ScheduleItem, 'id'>[]) => Promise<void>;
   removeSchedule: (id: string) => Promise<void>;
   addWorkEntry: (workEntry: Omit<WorkEntry, 'id' | 'recordedAt' | 'locked'>) => Promise<void>;
-  updateWorkEntry: (id: string, updates: Partial<Omit<WorkEntry, 'id' | 'scheduleId' | 'scheduleItemId' | 'employeeId' | 'recordedAt'>>) => Promise<void>;
+  updateWorkEntry: (id: string, updates: Partial<Omit<WorkEntry, 'id' | 'scheduleId' | 'scheduleItemId' | 'employeeId' | 'recordedAt'>>) => Promise<boolean>;
   removeWorkEntry: (id: string) => Promise<void>;
   isEmployeeEntryLocked: (scheduleId: string, scheduleItemId: string, employeeId: string) => boolean;
   lockEmployeeEntry: (scheduleId: string, scheduleItemId: string, employeeId: string) => void;
+  unlockEmployeeEntry: (scheduleId: string, scheduleItemId: string, employeeId: string) => void;
+  getWorkEntriesForEmployee: (scheduleId: string, employeeId: string) => WorkEntry[];
+  getScheduleById: (id: string) => Schedule | undefined;
+  isEmployeeAssignedForDate: (employeeId: string, date: string) => boolean;
+  getLockedEmployeeEntries: () => WorkEntry[];
+  getAllSchedulesByEmployeeId: (employeeId: string) => { schedule: Schedule; items: ScheduleItem[] }[];
+  deleteSchedule: (id: string) => Promise<void>;
   isLoading: boolean;
 };
 
@@ -98,6 +113,7 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       const newSchedule: Schedule = {
         id: generateId(),
         date: date,
+        createdAt: new Date().toISOString(),
         items: items.map(item => ({ ...item, id: generateId() }))
       };
 
@@ -114,9 +130,12 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
   const updateSchedule = async (id: string, date: string, items: Omit<ScheduleItem, 'id'>[]) => {
     setIsLoading(true);
     try {
+      const existingSchedule = schedules.find(schedule => schedule.id === id);
+      
       const updatedSchedule: Schedule = {
         id: id,
         date: date,
+        createdAt: existingSchedule?.createdAt || new Date().toISOString(),
         items: items.map(item => ({ ...item, id: generateId() }))
       };
 
@@ -147,6 +166,11 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Alias for removeSchedule to maintain compatibility
+  const deleteSchedule = async (id: string) => {
+    await removeSchedule(id);
+  };
+
   const addWorkEntry = async (workEntry: Omit<WorkEntry, 'id' | 'recordedAt' | 'locked'>) => {
     setIsLoading(true);
     try {
@@ -174,9 +198,11 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
         prevEntries.map(entry => (entry.id === id ? { ...entry, ...updates } : entry))
       );
       toast.success('Work entry updated successfully');
+      return true;
     } catch (error) {
       console.error("Error updating work entry:", error);
       toast.error('Failed to update work entry');
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -211,6 +237,60 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const unlockEmployeeEntry = (scheduleId: string, scheduleItemId: string, employeeId: string) => {
+    setWorkEntries(prevEntries =>
+      prevEntries.map(entry =>
+        entry.scheduleId === scheduleId && entry.scheduleItemId === scheduleItemId && entry.employeeId === employeeId
+          ? { ...entry, locked: false }
+          : entry
+      )
+    );
+    toast.success('Employee entries unlocked successfully');
+  };
+
+  const getWorkEntriesForEmployee = (scheduleId: string, employeeId: string): WorkEntry[] => {
+    return workEntries.filter(entry => 
+      entry.scheduleId === scheduleId && entry.employeeId === employeeId
+    );
+  };
+
+  const getScheduleById = (id: string): Schedule | undefined => {
+    return schedules.find(schedule => schedule.id === id);
+  };
+
+  const isEmployeeAssignedForDate = (employeeId: string, date: string): boolean => {
+    const schedulesForDate = schedules.filter(schedule => schedule.date === date);
+    
+    return schedulesForDate.some(schedule => 
+      schedule.items.some(item => 
+        item.employeeIds.includes(employeeId)
+      )
+    );
+  };
+
+  const getLockedEmployeeEntries = (): WorkEntry[] => {
+    return workEntries.filter(entry => entry.locked);
+  };
+
+  const getAllSchedulesByEmployeeId = (employeeId: string) => {
+    const result: { schedule: Schedule; items: ScheduleItem[] }[] = [];
+    
+    schedules.forEach(schedule => {
+      const assignedItems = schedule.items.filter(item => 
+        item.employeeIds.includes(employeeId)
+      );
+      
+      if (assignedItems.length > 0) {
+        result.push({
+          schedule,
+          items: assignedItems
+        });
+      }
+    });
+    
+    return result;
+  };
+
   return (
     <ScheduleContext.Provider value={{
       schedules,
@@ -223,6 +303,13 @@ export const ScheduleProvider = ({ children }: { children: ReactNode }) => {
       removeWorkEntry,
       isEmployeeEntryLocked,
       lockEmployeeEntry,
+      unlockEmployeeEntry,
+      getWorkEntriesForEmployee,
+      getScheduleById,
+      isEmployeeAssignedForDate,
+      getLockedEmployeeEntries,
+      getAllSchedulesByEmployeeId,
+      deleteSchedule,
       isLoading
     }}>
       {children}

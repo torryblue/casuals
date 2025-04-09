@@ -6,6 +6,8 @@ import EmployeeSearch from "./EmployeeSearch";
 
 type StrippingScheduleFormProps = {
   employeeIds: string[];
+  targetMass?: number;
+  numberOfScales?: number;
   onChange: (data: {
     employeeIds: string[];
     targetMass: number;
@@ -13,10 +15,10 @@ type StrippingScheduleFormProps = {
   }) => void;
 };
 
-const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormProps) => {
+const StrippingScheduleForm = ({ employeeIds, targetMass = 0, numberOfScales = 1, onChange }: StrippingScheduleFormProps) => {
   const { employees } = useEmployees();
-  const [targetMass, setTargetMass] = useState<number>(0);
-  const [numberOfScales, setNumberOfScales] = useState<number>(1);
+  const [localTargetMass, setLocalTargetMass] = useState<number>(targetMass);
+  const [localNumberOfScales, setLocalNumberOfScales] = useState<number>(numberOfScales);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds || []);
 
   // Helper to find employee by ID
@@ -39,8 +41,8 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
     // Notify parent component of the change
     onChange({
       employeeIds: updatedIds,
-      targetMass,
-      numberOfScales
+      targetMass: localTargetMass,
+      numberOfScales: localNumberOfScales
     });
   };
 
@@ -48,12 +50,12 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
   const handleTargetMassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Ensure whole number
     const value = Math.round(parseFloat(e.target.value) || 0);
-    setTargetMass(value);
+    setLocalTargetMass(value);
     
     onChange({
       employeeIds: selectedEmployeeIds,
       targetMass: value,
-      numberOfScales
+      numberOfScales: localNumberOfScales
     });
   };
 
@@ -61,11 +63,11 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
   const handleNumberOfScalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Ensure whole number
     const value = Math.round(parseInt(e.target.value) || 1);
-    setNumberOfScales(value);
+    setLocalNumberOfScales(value);
     
     onChange({
       employeeIds: selectedEmployeeIds,
-      targetMass,
+      targetMass: localTargetMass,
       numberOfScales: value
     });
   };
@@ -81,7 +83,7 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
           min="0"
           step="1"
           className="input-field w-full appearance-none"
-          value={targetMass}
+          value={localTargetMass}
           onChange={handleTargetMassChange}
           placeholder="Enter target mass in kg"
         />
@@ -96,7 +98,7 @@ const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormP
           min="1"
           step="1"
           className="input-field w-full appearance-none"
-          value={numberOfScales}
+          value={localNumberOfScales}
           onChange={handleNumberOfScalesChange}
           placeholder="Enter number of scales"
         />

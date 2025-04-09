@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Save, Lock, ArrowDownToLine, ArrowUpFromLine, Plus, Trash } from 'lucide-react';
 import { useSchedules, WorkEntry, OutputEntry } from '../contexts/ScheduleContext';
@@ -129,9 +130,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
       quantity: calculateTotalInputMass(),
       remarks,
       outputMass: calculateTotalByType('output'),
-      sticksMass: calculateTotalByType('sticks'),
-      f8Mass: calculateTotalByType('f8'),
-      dustMass: calculateTotalByType('dust'),
+      outputEntries,
       massInputs,
       entryType: ''
     });
@@ -161,9 +160,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
       quantity: calculateTotalInputMass(),
       remarks,
       outputMass: calculateTotalByType('output'),
-      sticksMass: calculateTotalByType('sticks'),
-      f8Mass: calculateTotalByType('f8'),
-      dustMass: calculateTotalByType('dust'),
+      outputEntries,
       massInputs,
       entryType: ''
     });
