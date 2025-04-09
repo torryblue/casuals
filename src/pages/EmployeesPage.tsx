@@ -55,6 +55,7 @@ const EmployeesPage = () => {
       toast.success("Employee added successfully. Complete their details in the admin panel.");
     } catch (error) {
       console.error("Error adding employee:", error);
+      toast.error(`Failed to add employee: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }

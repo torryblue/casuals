@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { useSchedules, WorkEntry, Schedule, ScheduleItem } from "@/contexts/ScheduleContext";
+import { useSchedules } from "@/contexts/ScheduleContext";
 import { ArrowLeft, DollarSign, Download, Calendar, User, FileText } from "lucide-react";
 import { toast } from "sonner";
 
