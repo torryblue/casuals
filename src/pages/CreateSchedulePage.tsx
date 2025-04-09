@@ -1,13 +1,16 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
+import { useAuth } from "@/contexts/AuthContext";
 import BailingLaminaScheduleForm from "@/components/BailingLaminaScheduleForm";
 import StrippingScheduleForm from "@/components/StrippingScheduleForm";
 import MachineScheduleForm from "@/components/MachineScheduleForm";
 import GradingScheduleForm from "@/components/GradingScheduleForm";
+import EmployeeSearch from "@/components/EmployeeSearch";
 import AppLayout from "@/components/AppLayout";
 
 const PREDEFINED_TASKS = [
@@ -21,6 +24,7 @@ const PREDEFINED_TASKS = [
 const CreateSchedulePage = () => {
   const navigate = useNavigate();
   const { employees } = useEmployees();
+  const { user } = useAuth();
   const { 
     addSchedule, 
     isEmployeeAssignedForDate, 
@@ -45,6 +49,11 @@ const CreateSchedulePage = () => {
     }
   ]);
   const [tasksScheduledForDay, setTasksScheduledForDay] = useState<string[]>([]);
+  
+  // Check if the user is trying to create a schedule for a date other than today
+  const isToday = scheduleDate === new Date().toISOString().split("T")[0];
+  const isAdmin = user?.role === 'admin';
+  const canCreateSchedule = isAdmin || isToday;
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -128,6 +137,10 @@ const CreateSchedulePage = () => {
     setScheduleItems(newItems);
   };
 
+  const isEmployeeDisabledForTask = (employeeId: string) => {
+    return isEmployeeAssignedForDate(employeeId, scheduleDate);
+  };
+
   const ensureWholeNumber = (value: number): number => {
     return Math.round(value);
   };
@@ -195,6 +208,11 @@ const CreateSchedulePage = () => {
       return;
     }
     
+    if (!canCreateSchedule) {
+      toast.error("Regular users can only create schedules for the current day");
+      return;
+    }
+    
     setIsLoading(true);
     
     // Add console logging
@@ -228,6 +246,12 @@ const CreateSchedulePage = () => {
         </div>
 
         <div className="glass-card p-6 element-transition">
+          {!canCreateSchedule && (
+            <div className="mb-4 p-3 bg-amber-50 text-amber-800 rounded-md border border-amber-200">
+              <p>As a regular user, you can only create schedules for today ({new Date().toISOString().split("T")[0]}).</p>
+            </div>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -239,10 +263,14 @@ const CreateSchedulePage = () => {
                   name="scheduleDate"
                   type="date"
                   required
-                  className="input-field w-full md:w-64"
+                  className={`input-field w-full md:w-64 ${!isAdmin && !isToday ? 'bg-gray-100' : ''}`}
                   value={scheduleDate}
                   onChange={(e) => setScheduleDate(e.target.value)}
+                  disabled={!isAdmin}
                 />
+                {!isAdmin && (
+                  <p className="text-xs text-gray-500">Only administrators can schedule for dates other than today.</p>
+                )}
               </div>
               
               <div className="space-y-4">
@@ -350,33 +378,13 @@ const CreateSchedulePage = () => {
                           <label className="block text-xs font-medium text-gray-600">
                             Assign Employees
                           </label>
-                          <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
-                            {employees.length > 0 ? (
-                              <div className="space-y-2">
-                                {employees.map((employee) => (
-                                  <div key={employee.id} className="flex items-center">
-                                    <input
-                                      type="checkbox"
-                                      id={`employee-${index}-${employee.id}`}
-                                      checked={(item.employeeIds as string[]).includes(employee.id)}
-                                      onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
-                                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                    />
-                                    <label
-                                      htmlFor={`employee-${index}-${employee.id}`}
-                                      className="ml-2 block text-sm text-gray-700"
-                                    >
-                                      {employee.name} {employee.surname} ({employee.id})
-                                    </label>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-gray-500 py-2 text-center">
-                                No employees available. Add employees first.
-                              </p>
-                            )}
-                          </div>
+                          <EmployeeSearch
+                            selectedEmployees={item.employeeIds}
+                            onEmployeeSelect={(employeeId, isSelected) => 
+                              handleEmployeeSelection(index, employeeId, isSelected)
+                            }
+                            isEmployeeDisabled={isEmployeeDisabledForTask}
+                          />
                         </div>
                       )}
                     </div>
@@ -388,9 +396,9 @@ const CreateSchedulePage = () => {
             <div className="pt-4 border-t flex justify-end">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !canCreateSchedule}
                 className={`btn-primary flex items-center ${
-                  isLoading ? "opacity-70 cursor-not-allowed" : ""
+                  (isLoading || !canCreateSchedule) ? "opacity-70 cursor-not-allowed" : ""
                 }`}
               >
                 {isLoading ? (

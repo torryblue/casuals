@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +25,7 @@ import EditEmployeePage from "./pages/master/EditEmployeePage";
 import ViewEmployeePage from "./pages/master/ViewEmployeePage";
 import EditSchedulePage from "./pages/master/EditSchedulePage";
 import ViewSchedulePage from "./pages/master/ViewSchedulePage";
+import PayrollPage from "./pages/master/PayrollPage";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,7 @@ const App = () => (
                 <Route path="/master/schedules/edit/:id" element={<ProtectedRoute><EditSchedulePage /></ProtectedRoute>} />
                 <Route path="/master/schedules/view/:id" element={<ProtectedRoute><ViewSchedulePage /></ProtectedRoute>} />
                 <Route path="/master/reports" element={<ProtectedRoute><MasterReports /></ProtectedRoute>} />
+                <Route path="/master/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
                 
                 <Route path="*" element={<NotFound />} />
               </Routes>

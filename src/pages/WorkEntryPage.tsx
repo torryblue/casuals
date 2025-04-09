@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/AppLayout";
-import { ArrowLeft, Calendar, ClipboardList } from "lucide-react";
+import { ArrowLeft, Calendar, ClipboardList, LockIcon } from "lucide-react";
 import { useSchedules, Schedule, ScheduleItem, WorkEntry } from "../contexts/ScheduleContext";
 import { useEmployees } from "../contexts/EmployeeContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,15 +13,13 @@ import BailingStickWorkEntryForm from "../components/BailingStickWorkEntryForm";
 import TicketWorkEntryForm from "../components/TicketWorkEntryForm";
 import { toast } from "sonner";
 
-// ... keep existing code (const WorkEntryPage, navigate, useSchedules, etc.)
-
 const WorkEntryPage = () => {
   const navigate = useNavigate();
   const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, updateWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
   const { employees } = useEmployees();
   const { user } = useAuth();
   
-  // ... keep existing code (state variables, filter logic)
+  // State variables
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<ScheduleItem | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
@@ -31,11 +30,12 @@ const WorkEntryPage = () => {
   const [editEntryId, setEditEntryId] = useState<string | null>(null);
   
   const today = new Date().toISOString().split('T')[0];
+  const isAdmin = user?.role === 'admin';
   
-  // Filter schedules to only include today's schedules for non-admin users
-  const visibleSchedules = user?.role === 'admin' 
-    ? schedules // Admins see all schedules
-    : schedules.filter(s => s.date === today); // Non-admins see only today's schedules
+  // Filter schedules based on user role - admins see all, regular users see only today's
+  const visibleSchedules = isAdmin 
+    ? schedules 
+    : schedules.filter(s => s.date === today);
   
   const selectedSchedule = schedules.find(s => s.id === selectedScheduleId);
   
@@ -55,7 +55,7 @@ const WorkEntryPage = () => {
     ? isEmployeeEntryLocked(selectedScheduleId, selectedScheduleItem.id, selectedEmployeeId)
     : false;
 
-  // ... keep existing code (useEffect, handlers)
+  // Check form completeness
   useEffect(() => {
     if (selectedScheduleItem && selectedEmployeeId) {
       const isTicketTask = selectedScheduleItem.task.toLowerCase().includes("ticket");
@@ -67,11 +67,7 @@ const WorkEntryPage = () => {
     }
   }, [selectedScheduleItem, selectedEmployeeId, quantity, remarks]);
 
-  const getEmployeeName = (employeeId: string) => {
-    const employee = employees.find(e => e.id === employeeId);
-    return employee ? `${employee.name} ${employee.surname}` : employeeId;
-  };
-
+  // Reset form when schedule or employee changes
   useEffect(() => {
     setSelectedScheduleItem(null);
     setQuantity("");
@@ -79,12 +75,20 @@ const WorkEntryPage = () => {
     setEditMode(false);
     setEditEntryId(null);
   }, [selectedScheduleId, selectedEmployeeId]);
+
+  // Helper function to get employee name
+  const getEmployeeName = (employeeId: string) => {
+    const employee = employees.find(e => e.id === employeeId);
+    return employee ? `${employee.name} ${employee.surname}` : employeeId;
+  };
   
+  // Handler when entry is added/updated by a specialized form
   const handleEntryAdded = () => {
     setEditMode(false);
     setEditEntryId(null);
   };
 
+  // Handle edit entry
   const handleEditEntry = (entry: any) => {
     if (entry.locked) {
       toast.error("Cannot edit a locked entry");
@@ -97,6 +101,7 @@ const WorkEntryPage = () => {
     setRemarks(entry.remarks);
   };
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -142,6 +147,7 @@ const WorkEntryPage = () => {
     }
   };
 
+  // Handle locking entries
   const handleLockEntries = () => {
     if (selectedScheduleId && selectedScheduleItem && selectedEmployeeId) {
       lockEmployeeEntry(selectedScheduleId, selectedScheduleItem.id, selectedEmployeeId);
@@ -166,9 +172,9 @@ const WorkEntryPage = () => {
           <div className="mb-6">
             <h2 className="text-lg font-medium text-gray-800 mb-4">Record Work Entry</h2>
             
-            {user?.role !== 'admin' && visibleSchedules.length === 0 && (
+            {!isAdmin && (
               <div className="text-center p-4 bg-amber-50 rounded-lg mb-4">
-                <p className="text-amber-800">Only today's schedules ({today}) are available for recording entries.</p>
+                <p className="text-amber-800">As a regular user, you can only record entries for today's schedules ({today}).</p>
               </div>
             )}
             
@@ -241,7 +247,7 @@ const WorkEntryPage = () => {
                   <option value="">-- Select a Task --</option>
                   {filteredScheduleItems.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {item.task}
+                      {item.task} {isEmployeeEntryLocked(selectedScheduleId, item.id, selectedEmployeeId) ? "(Locked)" : ""}
                     </option>
                   ))}
                 </select>
@@ -296,9 +302,80 @@ const WorkEntryPage = () => {
               selectedScheduleItem && (
                 <div className="mt-4">
                   <div className="glass-card p-4">
-                    <h3 className="text-md font-medium mb-4">
-                      {editMode ? 'Edit' : 'Regular'} Work Entry for {getEmployeeName(selectedEmployeeId)}
-                    </h3>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-md font-medium">
+                        {editMode ? 'Edit' : 'Regular'} Work Entry for {getEmployeeName(selectedEmployeeId)}
+                      </h3>
+                      
+                      {isLocked && (
+                        <div className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-800">
+                          <LockIcon className="h-3.5 w-3.5 mr-1.5" />
+                          Worker Locked
+                        </div>
+                      )}
+                    </div>
+                    
+                    {isLocked ? (
+                      <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <p className="text-gray-700">This worker's entries have been locked. No further entries can be recorded.</p>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="space-y-4">
+                          <div>
+                            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700">
+                              Quantity <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              id="quantity"
+                              type="number"
+                              min="0"
+                              step="1"
+                              required
+                              className="input-field w-full mt-1"
+                              value={quantity}
+                              onChange={(e) => setQuantity(e.target.value ? Number(e.target.value) : "")}
+                            />
+                          </div>
+                          
+                          <div>
+                            <label htmlFor="remarks" className="block text-sm font-medium text-gray-700">
+                              Remarks <span className="text-red-500">*</span>
+                            </label>
+                            <textarea
+                              id="remarks"
+                              rows={3}
+                              required
+                              className="input-field w-full mt-1"
+                              value={remarks}
+                              onChange={(e) => setRemarks(e.target.value)}
+                              placeholder="Enter remarks about this work entry"
+                            ></textarea>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-end space-x-2">
+                          <button
+                            type="submit"
+                            className="btn-primary"
+                            disabled={!formComplete}
+                          >
+                            {editMode ? "Update Entry" : "Save Entry"}
+                          </button>
+                          
+                          {!editMode && scheduleItemEntries.length > 0 && (
+                            <button
+                              type="button"
+                              className="btn-secondary flex items-center"
+                              onClick={handleLockEntries}
+                            >
+                              <LockIcon className="h-4 w-4 mr-2" />
+                              Lock Entries
+                            </button>
+                          )}
+                        </div>
+                      </form>
+                    )}
                     
                     {scheduleItemEntries.length > 0 && (
                       <div className="mt-6">
@@ -377,12 +454,12 @@ const WorkEntryPage = () => {
               <div className="text-center p-4 bg-gray-50 rounded-lg">
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-2" />
                 <p className="text-gray-600">
-                  {user?.role === 'admin' 
+                  {isAdmin 
                     ? "No schedules found. Create a schedule first."
                     : `No schedules found for today (${today}). Please contact an administrator.`
                   }
                 </p>
-                {user?.role === 'admin' && (
+                {isAdmin && (
                   <button
                     onClick={() => navigate('/schedule/create')}
                     className="mt-3 btn-primary"
