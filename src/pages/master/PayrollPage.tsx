@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { useSchedules } from "@/contexts/ScheduleContext";
+import { useSchedules, WorkEntry } from "@/contexts/ScheduleContext";
 import { ArrowLeft, DollarSign, Download, Calendar, User, FileText } from "lucide-react";
 import { toast } from "sonner";
 
@@ -22,6 +22,9 @@ interface EmployeePayment {
     task: string;
     date: string;
     quantity: number;
+    actualOutput?: number;
+    targetOutput?: number;
+    rate: number;
     amount: number;
   }[];
 }
@@ -89,6 +92,43 @@ const PayrollPage = () => {
     setPayRates(updatedRates);
   };
 
+  // New function to calculate payment based on task type and work entry
+  const calculatePaymentForEntry = (
+    entry: WorkEntry, 
+    scheduleItem: { task: string; targetMass?: number },
+    taskRate: number
+  ): { amount: number; actualOutput?: number; targetOutput?: number } => {
+    // Default calculation (for most tasks)
+    let amount = entry.quantity * taskRate;
+    let actualOutput: number | undefined = undefined;
+    let targetOutput: number | undefined = undefined;
+
+    // Special calculation for Stripping task
+    if (scheduleItem.task === "Stripping" && scheduleItem.targetMass) {
+      targetOutput = scheduleItem.targetMass;
+      
+      // Calculate total inscale mass from scaleEntries if available
+      if (entry.scaleEntries && entry.scaleEntries.length > 0) {
+        const totalInscaleMass = entry.scaleEntries.reduce((sum, scaleEntry) => 
+          sum + (scaleEntry.inValue || 0), 0);
+        
+        actualOutput = totalInscaleMass;
+        
+        // If below target, adjust payment proportionally
+        if (totalInscaleMass < scheduleItem.targetMass) {
+          amount = (totalInscaleMass / scheduleItem.targetMass) * taskRate;
+        }
+      }
+    }
+    
+    // For Ticket Based Work, rate is always constant
+    if (scheduleItem.task === "Ticket Based Work") {
+      amount = entry.quantity * taskRate;
+    }
+
+    return { amount, actualOutput, targetOutput };
+  };
+
   // Function to calculate payments
   const calculatePayments = () => {
     setIsCalculating(true);
@@ -121,8 +161,12 @@ const PayrollPage = () => {
         // Find the rate for this task
         const taskRate = payRates.find(r => r.task === scheduleItem.task)?.rate || 0;
         
-        // Calculate the amount
-        const amount = entry.quantity * taskRate;
+        // Calculate the payment based on task type
+        const { amount, actualOutput, targetOutput } = calculatePaymentForEntry(
+          entry,
+          scheduleItem,
+          taskRate
+        );
         
         // Add to the employee's payments
         if (!employeePayments[employee.id]) {
@@ -139,6 +183,9 @@ const PayrollPage = () => {
           task: scheduleItem.task,
           date: schedule.date,
           quantity: entry.quantity,
+          actualOutput,
+          targetOutput,
+          rate: taskRate,
           amount: amount
         });
         
@@ -424,6 +471,7 @@ const PayrollPage = () => {
                           <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                           <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
                           <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                          <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actual/Target</th>
                           <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rate</th>
                           <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                         </tr>
@@ -443,6 +491,11 @@ const PayrollPage = () => {
                                 {entry.quantity}
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 text-right">
+                                {entry.actualOutput !== undefined && entry.targetOutput !== undefined ? 
+                                  `${entry.actualOutput.toFixed(1)}/${entry.targetOutput.toFixed(1)} kg` : 
+                                  "-"}
+                              </td>
+                              <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-500 text-right">
                                 ${rate.toFixed(2)}
                               </td>
                               <td className="px-4 py-2 whitespace-nowrap text-xs text-gray-900 text-right">
@@ -452,7 +505,7 @@ const PayrollPage = () => {
                           );
                         })}
                         <tr className="bg-gray-100">
-                          <td colSpan={4} className="px-4 py-2 whitespace-nowrap text-xs font-bold text-gray-900 text-right">
+                          <td colSpan={5} className="px-4 py-2 whitespace-nowrap text-xs font-bold text-gray-900 text-right">
                             Total:
                           </td>
                           <td className="px-4 py-2 whitespace-nowrap text-xs font-bold text-green-600 text-right">
