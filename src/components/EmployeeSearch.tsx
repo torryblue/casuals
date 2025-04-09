@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Search, UserPlus, UserX } from "lucide-react";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Employee } from "@/contexts/EmployeeContext";
+import { Input } from "@/components/ui/input";
 
 interface EmployeeSearchProps {
   selectedEmployees: string[];
@@ -21,6 +22,7 @@ const EmployeeSearch = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
 
+  // Filter employees based on search term
   useEffect(() => {
     if (searchTerm.trim() === "") {
       setFilteredEmployees(employees);
@@ -30,11 +32,22 @@ const EmployeeSearch = ({
         employee =>
           (employee.name?.toLowerCase().includes(lowerCaseSearch) || false) ||
           (employee.surname?.toLowerCase().includes(lowerCaseSearch) || false) ||
-          (employee.id.toLowerCase().includes(lowerCaseSearch))
+          (employee.id.toLowerCase().includes(lowerCaseSearch)) ||
+          (employee.contact?.toLowerCase().includes(lowerCaseSearch) || false)
       );
       setFilteredEmployees(filtered);
     }
   }, [searchTerm, employees]);
+
+  // Handle search input change
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Clear search input
+  const clearSearch = () => {
+    setSearchTerm("");
+  };
 
   return (
     <div className="space-y-2">
@@ -42,13 +55,22 @@ const EmployeeSearch = ({
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-4 w-4 text-gray-400" />
         </div>
-        <input
+        <Input
           type="text"
-          className="input-field pl-10 w-full"
-          placeholder="Search employees by name or ID..."
+          className="pl-10 w-full"
+          placeholder="Search by name, ID or contact..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleSearchChange}
         />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+          >
+            <UserX className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+          </button>
+        )}
       </div>
       
       {selectedEmployees.length > 0 && (
@@ -97,7 +119,12 @@ const EmployeeSearch = ({
                     <p className="text-sm font-medium">
                       {employee.name} {employee.surname}
                     </p>
-                    <p className="text-xs text-gray-500">{employee.id}</p>
+                    <div className="flex flex-col xs:flex-row xs:space-x-2">
+                      <p className="text-xs text-gray-500">{employee.id}</p>
+                      {employee.contact && (
+                        <p className="text-xs text-gray-500">{employee.contact}</p>
+                      )}
+                    </div>
                   </div>
                   <button
                     type="button"
