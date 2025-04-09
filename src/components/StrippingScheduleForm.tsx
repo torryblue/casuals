@@ -15,7 +15,7 @@ type StrippingScheduleFormProps = {
   }) => void;
 };
 
-const StrippingScheduleForm = ({ employeeIds, targetMass = 0, numberOfScales = 1, onChange }: StrippingScheduleFormProps) => {
+const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScales = 1, onChange }: StrippingScheduleFormProps) => {
   const { employees } = useEmployees();
   const [localTargetMass, setLocalTargetMass] = useState<number>(targetMass);
   const [localNumberOfScales, setLocalNumberOfScales] = useState<number>(numberOfScales);

@@ -41,8 +41,12 @@ export type ScheduleItem = {
   id: string;
   task: string;
   employeeIds: string[];
+  workers?: number; // Added this property
   targetMass?: number;
   numberOfScales?: number;
+  numberOfBales?: number; // Added
+  classGrades?: string[]; // Added
+  quantity?: number; // Added
 };
 
 export type Schedule = {

@@ -1,9 +1,11 @@
 
-import { useState, useEffect } from "react";
-import { ArrowLeft, Unlock, Search, Calendar } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { ArrowLeft, Unlock, Search, Filter } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 import { toast } from "sonner";
 
 const UnlockEntriesPage = () => {
@@ -11,139 +13,138 @@ const UnlockEntriesPage = () => {
   const { getLockedEmployeeEntries, unlockEmployeeEntry } = useSchedules();
   const { employees } = useEmployees();
   
-  const [lockedEntries, setLockedEntries] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isUnlocking, setIsUnlocking] = useState(false);
+  const [filterTask, setFilterTask] = useState("");
   
-  useEffect(() => {
-    // Get locked entries from context
-    const entries = getLockedEmployeeEntries();
-    
-    // Add employee names to entries
-    const entriesWithNames = entries.map(entry => {
-      const employee = employees.find(emp => emp.id === entry.employeeId);
-      return {
-        ...entry,
-        employeeName: employee ? `${employee.name} ${employee.surname}` : 'Unknown Employee'
-      };
-    });
-    
-    setLockedEntries(entriesWithNames);
-  }, [getLockedEmployeeEntries, employees]);
+  const lockedEntries = getLockedEmployeeEntries();
   
-  // Filter entries based on search query
-  const filteredEntries = lockedEntries.filter(entry => {
-    const searchString = `${entry.employeeName} ${entry.date} ${entry.task}`.toLowerCase();
-    return searchString.includes(searchQuery.toLowerCase());
-  });
+  // Helper function to get employee name by ID
+  const getEmployeeName = (id: string) => {
+    const employee = employees.find(emp => emp.id === id);
+    return employee ? `${employee.name} ${employee.surname}` : 'Unknown';
+  };
   
-  // Handle unlock entry
-  const handleUnlock = async (scheduleId: string, scheduleItemId: string, employeeId: string) => {
+  // Filter entries based on search term and task filter
+  const filteredEntries = lockedEntries.filter(entry => 
+    (getEmployeeName(entry.employeeId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    entry.entryType.toLowerCase().includes(searchTerm.toLowerCase())) &&
+    (filterTask === "" || entry.entryType === filterTask)
+  );
+  
+  // Get unique tasks for filter dropdown
+  const uniqueTasks = [...new Set(lockedEntries.map(entry => entry.entryType))];
+  
+  const handleUnlockEntry = async (entry) => {
     setIsUnlocking(true);
-    
     try {
-      const success = await unlockEmployeeEntry(scheduleId, scheduleItemId, employeeId);
-      
-      if (success) {
-        // Remove the unlocked entry from the list
-        setLockedEntries(prev => 
-          prev.filter(entry => 
-            !(entry.scheduleId === scheduleId && 
-              entry.scheduleItemId === scheduleItemId && 
-              entry.employeeId === employeeId)
-          )
-        );
-      }
+      // Call unlockEmployeeEntry function but don't check its return value
+      unlockEmployeeEntry(entry.scheduleId, entry.scheduleItemId, entry.employeeId);
+      toast.success(`Entry for ${getEmployeeName(entry.employeeId)} unlocked successfully`);
+    } catch (error) {
+      console.error("Error unlocking entry:", error);
+      toast.error("Failed to unlock entry");
     } finally {
       setIsUnlocking(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <button 
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-        >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
-        </button>
-        <h1 className="text-2xl font-medium text-gray-800">Unlock Work Entries</h1>
-      </div>
-
-      <div className="glass-card p-6 element-transition">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="input-field pl-10 w-full"
-              placeholder="Search employees, dates, or tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
+    <AppLayout>
+      <div className="space-y-6">
+        <div className="flex items-center space-x-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-gray-500" />
+          </button>
+          <h1 className="text-2xl font-medium text-gray-800">Unlock Work Entries</h1>
         </div>
-        
-        {filteredEntries.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Task
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredEntries.map((entry, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.employeeName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.task}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleUnlock(entry.scheduleId, entry.scheduleItemId, entry.employeeId)}
-                        disabled={isUnlocking}
-                        className="text-torryblue-accent hover:text-torryblue-accent/80 flex items-center space-x-1"
-                      >
-                        <Unlock className="h-4 w-4" />
-                        <span>Unlock</span>
-                      </button>
-                    </td>
-                  </tr>
+
+        <div className="glass-card p-6 element-transition">
+          <div className="flex flex-col md:flex-row justify-between gap-4 pb-4">
+            {/* Search box */}
+            <div className="relative w-full md:w-96">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search entries..."
+                className="input-field pl-10 w-full"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            {/* Task filter */}
+            <div className="relative flex items-center">
+              <Filter className="h-5 w-5 text-gray-400 mr-2" />
+              <select
+                className="input-field"
+                value={filterTask}
+                onChange={(e) => setFilterTask(e.target.value)}
+              >
+                <option value="">All Tasks</option>
+                {uniqueTasks.map(task => (
+                  <option key={task} value={task}>{task}</option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-8">
-            <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No locked entries</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              There are no locked employee entries at this time.
-            </p>
-          </div>
-        )}
+
+          {filteredEntries.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    <th className="px-4 py-3 text-sm font-medium text-gray-600">Employee</th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-600">Task</th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-600">Quantity/Mass</th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-600">Recorded At</th>
+                    <th className="px-4 py-3 text-sm font-medium text-gray-600">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredEntries.map(entry => (
+                    <tr key={entry.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-800">
+                        {getEmployeeName(entry.employeeId)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {entry.entryType}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {entry.quantity} {entry.entryType.toLowerCase().includes('stripping') ? 'kg' : ''}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {format(new Date(entry.recordedAt), 'MMM dd, yyyy HH:mm')}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <button
+                          onClick={() => handleUnlockEntry(entry)}
+                          disabled={isUnlocking}
+                          className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          <Unlock className="h-3.5 w-3.5 mr-1" />
+                          Unlock
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <Unlock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500">No locked entries found.</p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 };
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { Input } from "@/components/ui/input";
@@ -5,12 +6,14 @@ import { Input } from "@/components/ui/input";
 interface BailingLaminaScheduleFormProps {
   employeeIds: string[];
   targetMass: number;
-  onChange: (data: { employeeIds: string[], targetMass: number }) => void;
+  numberOfBales?: number; // Added this property
+  onChange: (data: { employeeIds: string[], targetMass: number, numberOfBales?: number }) => void;
 }
 
 const BailingLaminaScheduleForm = ({ 
   employeeIds, 
   targetMass,
+  numberOfBales = 0, // Added default value
   onChange 
 }: BailingLaminaScheduleFormProps) => {
   const { employees } = useEmployees();
@@ -26,7 +29,8 @@ const BailingLaminaScheduleForm = ({
     
     onChange({ 
       employeeIds: newEmployeeIds,
-      targetMass
+      targetMass,
+      numberOfBales // Pass this property
     });
   };
 
@@ -35,7 +39,18 @@ const BailingLaminaScheduleForm = ({
     
     onChange({
       employeeIds,
-      targetMass: newTargetMass
+      targetMass: newTargetMass,
+      numberOfBales
+    });
+  };
+
+  const handleNumberOfBalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newNumberOfBales = parseInt(e.target.value) || 0;
+    
+    onChange({
+      employeeIds,
+      targetMass,
+      numberOfBales: newNumberOfBales
     });
   };
 
@@ -53,6 +68,20 @@ const BailingLaminaScheduleForm = ({
             placeholder="Enter target mass"
             value={targetMass || ''}
             onChange={handleTargetMassChange}
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-gray-600">
+            Number of Bales
+          </label>
+          <Input
+            type="number"
+            min="0"
+            required
+            placeholder="Enter number of bales"
+            value={numberOfBales || ''}
+            onChange={handleNumberOfBalesChange}
           />
         </div>
       </div>
