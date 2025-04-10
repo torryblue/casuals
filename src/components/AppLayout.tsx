@@ -11,7 +11,8 @@ import {
   Settings,
   ChevronDown,
   LogOut,
-  Database
+  Database,
+  Receipt // Added for the Payroll icon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +51,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       children: [
         { title: "Employee List", path: "/master/employees" },
         { title: "Schedule List", path: "/master/schedules" },
-        { title: "Work Reports", path: "/master/reports" }
+        { title: "Work Reports", path: "/master/reports" },
+        { title: "Payroll", path: "/master/payroll" } // Added Payroll page
       ]
     }
   ];
