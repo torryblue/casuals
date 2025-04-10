@@ -52,9 +52,10 @@ const ViewSchedulePage = () => {
 
     setIsUnlocking(true);
     try {
-      // Call unlockEmployeeEntry function but don't check its return value
-      unlockEmployeeEntry(entry.scheduleId, entry.scheduleItemId, entry.employeeId);
-      toast.success(`Entry for ${getEmployeeName(entry.employeeId)} unlocked successfully`);
+      const success = await unlockEmployeeEntry(entry.scheduleId, entry.scheduleItemId, entry.employeeId);
+      if (success) {
+        toast.success(`Entry for ${getEmployeeName(entry.employeeId)} unlocked successfully`);
+      }
     } catch (error) {
       console.error("Error unlocking entry:", error);
       toast.error("Failed to unlock entry");
@@ -109,7 +110,7 @@ const ViewSchedulePage = () => {
               
               <div>
                 <p className="text-sm text-gray-500">Created At</p>
-                <p className="font-medium">{schedule.createdAt ? format(new Date(schedule.createdAt), 'MMM dd, yyyy HH:mm') : 'Unknown'}</p>
+                <p className="font-medium">{format(new Date(schedule.createdAt), 'MMM dd, yyyy HH:mm')}</p>
               </div>
               
               <div>
@@ -119,15 +120,7 @@ const ViewSchedulePage = () => {
               
               <div>
                 <p className="text-sm text-gray-500">Total Workers</p>
-                <p className="font-medium">
-                  {schedule.items.reduce((total, item) => {
-                    if (item.workers) {
-                      return total + item.workers;
-                    } else {
-                      return total + item.employeeIds.length;
-                    }
-                  }, 0)}
-                </p>
+                <p className="font-medium">{schedule.items.reduce((total, item) => total + item.workers, 0)}</p>
               </div>
             </div>
           </div>
@@ -146,7 +139,7 @@ const ViewSchedulePage = () => {
                   <div className="grid grid-cols-2 gap-4 mt-2">
                     <div>
                       <p className="text-sm text-gray-500">Workers Required</p>
-                      <p className="font-medium">{item.workers || item.employeeIds.length}</p>
+                      <p className="font-medium">{item.workers}</p>
                     </div>
                     
                     {item.targetMass > 0 && (

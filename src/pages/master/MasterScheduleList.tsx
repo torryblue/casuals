@@ -42,18 +42,6 @@ const MasterScheduleList = () => {
     }
   };
 
-  // Helper function to count total workers in a schedule
-  const countTotalWorkers = (schedule) => {
-    return schedule.items.reduce((total, item) => {
-      if (item.workers) {
-        return total + item.workers;
-      } else {
-        // Fallback to count employee IDs if workers property is not available
-        return total + item.employeeIds.length;
-      }
-    }, 0);
-  };
-
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -107,10 +95,10 @@ const MasterScheduleList = () => {
                         {schedule.items.map(item => item.task).join(", ")}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {countTotalWorkers(schedule)}
+                        {schedule.items.reduce((total, item) => total + item.workers, 0)}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
-                        {schedule.createdAt ? format(new Date(schedule.createdAt), 'MMM dd, yyyy') : 'Unknown'}
+                        {format(new Date(schedule.createdAt), 'MMM dd, yyyy')}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600">
                         <div className="flex space-x-2">

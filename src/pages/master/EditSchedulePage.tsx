@@ -172,8 +172,7 @@ const EditSchedulePage = () => {
     
     console.log('Updating schedule with items:', JSON.stringify(scheduleItems, null, 2));
     
-    // Fix: Pass scheduleDate as the second argument
-    updateSchedule(id || '', scheduleDate, scheduleItems);
+    updateSchedule(id || '', scheduleItems);
     navigate('/master/schedules');
   };
   
@@ -183,7 +182,6 @@ const EditSchedulePage = () => {
     return employee ? `${employee.name} ${employee.surname}` : 'Unknown';
   };
   
-
   return (
     <AppLayout>
       <div className="space-y-6">

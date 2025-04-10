@@ -1,13 +1,10 @@
 
-import React, { useState } from "react";
-import { X } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import EmployeeSearch from "./EmployeeSearch";
+import { X } from "lucide-react";
 
 type StrippingScheduleFormProps = {
   employeeIds: string[];
-  targetMass?: number;
-  numberOfScales?: number;
   onChange: (data: {
     employeeIds: string[];
     targetMass: number;
@@ -15,10 +12,10 @@ type StrippingScheduleFormProps = {
   }) => void;
 };
 
-const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScales = 1, onChange }: StrippingScheduleFormProps) => {
+const StrippingScheduleForm = ({ employeeIds, onChange }: StrippingScheduleFormProps) => {
   const { employees } = useEmployees();
-  const [localTargetMass, setLocalTargetMass] = useState<number>(targetMass);
-  const [localNumberOfScales, setLocalNumberOfScales] = useState<number>(numberOfScales);
+  const [targetMass, setTargetMass] = useState<number>(0);
+  const [numberOfScales, setNumberOfScales] = useState<number>(1);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds || []);
 
   // Helper to find employee by ID
@@ -41,8 +38,8 @@ const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScale
     // Notify parent component of the change
     onChange({
       employeeIds: updatedIds,
-      targetMass: localTargetMass,
-      numberOfScales: localNumberOfScales
+      targetMass,
+      numberOfScales
     });
   };
 
@@ -50,12 +47,12 @@ const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScale
   const handleTargetMassChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Ensure whole number
     const value = Math.round(parseFloat(e.target.value) || 0);
-    setLocalTargetMass(value);
+    setTargetMass(value);
     
     onChange({
       employeeIds: selectedEmployeeIds,
       targetMass: value,
-      numberOfScales: localNumberOfScales
+      numberOfScales
     });
   };
 
@@ -63,11 +60,11 @@ const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScale
   const handleNumberOfScalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Ensure whole number
     const value = Math.round(parseInt(e.target.value) || 1);
-    setLocalNumberOfScales(value);
+    setNumberOfScales(value);
     
     onChange({
       employeeIds: selectedEmployeeIds,
-      targetMass: localTargetMass,
+      targetMass,
       numberOfScales: value
     });
   };
@@ -83,7 +80,7 @@ const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScale
           min="0"
           step="1"
           className="input-field w-full appearance-none"
-          value={localTargetMass}
+          value={targetMass}
           onChange={handleTargetMassChange}
           placeholder="Enter target mass in kg"
         />
@@ -98,7 +95,7 @@ const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScale
           min="1"
           step="1"
           className="input-field w-full appearance-none"
-          value={localNumberOfScales}
+          value={numberOfScales}
           onChange={handleNumberOfScalesChange}
           placeholder="Enter number of scales"
         />
@@ -108,10 +105,57 @@ const StrippingScheduleForm = ({ employeeIds = [], targetMass = 0, numberOfScale
         <label className="block text-xs font-medium text-gray-600">
           Assign Workers
         </label>
-        <EmployeeSearch 
-          selectedEmployees={selectedEmployeeIds}
-          onEmployeeSelect={handleEmployeeSelection}
-        />
+        <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
+          {employees.length > 0 ? (
+            <div className="space-y-2">
+              {employees.map((employee) => (
+                <div key={employee.id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`employee-stripping-${employee.id}`}
+                    checked={selectedEmployeeIds.includes(employee.id)}
+                    onChange={(e) => handleEmployeeSelection(employee.id, e.target.checked)}
+                    className="h-4 w-4 text-torryblue-accent rounded border-gray-300 focus:ring-torryblue-accent"
+                  />
+                  <label
+                    htmlFor={`employee-stripping-${employee.id}`}
+                    className="ml-2 block text-sm text-gray-700"
+                  >
+                    {employee.name} {employee.surname} ({employee.id})
+                  </label>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 py-2 text-center">
+              No employees available. Add employees first.
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-2">
+        <h4 className="text-xs font-medium text-gray-600 mb-2">Selected Workers:</h4>
+        <div className="flex flex-wrap gap-2">
+          {selectedEmployeeIds.map(id => {
+            const employee = findEmployee(id);
+            return employee ? (
+              <div key={id} className="bg-gray-100 px-2 py-1 rounded-md flex items-center text-sm">
+                {employee.name} {employee.surname}
+                <button
+                  type="button"
+                  onClick={() => handleEmployeeSelection(id, false)}
+                  className="ml-1 text-gray-500 hover:text-red-500"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : null;
+          })}
+          {selectedEmployeeIds.length === 0 && (
+            <p className="text-sm text-gray-500">No workers selected</p>
+          )}
+        </div>
       </div>
     </div>
   );

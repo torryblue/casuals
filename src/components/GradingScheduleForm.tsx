@@ -5,37 +5,30 @@ import { X, Plus } from "lucide-react";
 
 type GradingScheduleFormProps = {
   employeeIds: string[];
-  classGrades?: string[]; // Added this property
-  quantity?: number; // Added this property
   onChange: (data: {
     employeeIds: string[];
     numberOfBales: number;
     classGrades: string[];
-    quantity?: number; // Added this property
   }) => void;
 };
 
 const GradingScheduleForm = ({ 
   employeeIds = [], 
-  classGrades: initialClassGrades = [''],
-  quantity: initialQuantity = 0,
   onChange 
 }: GradingScheduleFormProps) => {
   const { employees } = useEmployees();
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>(employeeIds);
   const [numberOfBales, setNumberOfBales] = useState<number>(0);
-  const [classGrades, setClassGrades] = useState<string[]>(initialClassGrades);
-  const [quantity, setQuantity] = useState<number>(initialQuantity);
+  const [classGrades, setClassGrades] = useState<string[]>(['']);
 
   // Update parent component when values change
   useEffect(() => {
     onChange({
       employeeIds: selectedEmployeeIds,
       numberOfBales,
-      classGrades: classGrades.filter(grade => grade.trim() !== ''), // Only include non-empty grades
-      quantity
+      classGrades: classGrades.filter(grade => grade.trim() !== '') // Only include non-empty grades
     });
-  }, [selectedEmployeeIds, numberOfBales, classGrades, onChange, quantity]);
+  }, [selectedEmployeeIds, numberOfBales, classGrades, onChange]);
 
   // Helper to find employee by ID
   const findEmployee = (id: string) => {
@@ -59,12 +52,6 @@ const GradingScheduleForm = ({
   const handleNumberOfBalesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Math.round(parseInt(e.target.value) || 0);
     setNumberOfBales(value);
-  };
-
-  // Handle quantity change
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.round(parseInt(e.target.value) || 0);
-    setQuantity(value);
   };
 
   // Handle class grade changes
@@ -102,21 +89,6 @@ const GradingScheduleForm = ({
           value={numberOfBales}
           onChange={handleNumberOfBalesChange}
           placeholder="Enter number of bales"
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <label className="block text-xs font-medium text-gray-600">
-          Quantity
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="1"
-          className="input-field w-full appearance-none"
-          value={quantity}
-          onChange={handleQuantityChange}
-          placeholder="Enter quantity"
         />
       </div>
       

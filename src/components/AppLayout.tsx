@@ -11,8 +11,7 @@ import {
   Settings,
   ChevronDown,
   LogOut,
-  Database,
-  DollarSign
+  Database
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,8 +50,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       children: [
         { title: "Employee List", path: "/master/employees" },
         { title: "Schedule List", path: "/master/schedules" },
-        { title: "Work Reports", path: "/master/reports" },
-        { title: "Payroll", path: "/master/payroll" }
+        { title: "Work Reports", path: "/master/reports" }
       ]
     }
   ];
