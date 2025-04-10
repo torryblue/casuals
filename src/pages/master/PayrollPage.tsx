@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Download, Calendar, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -154,20 +155,24 @@ const PayrollPage = () => {
       }
 
       // Map for quick lookup of schedule items
-      const scheduleItemsMap: Record<string, any> = scheduleItems.reduce((acc: Record<string, any>, item: any) => {
-        acc[item.id] = item;
-        return acc;
-      }, {});
+      const scheduleItemsMap: Record<string, any> = {};
+      if (scheduleItems) {
+        scheduleItems.forEach((item: any) => {
+          scheduleItemsMap[item.id] = item;
+        });
+      }
 
       // Group work entries by employee
       const entriesByEmployee: Record<string, any[]> = {};
       
-      workEntries.forEach(entry => {
-        if (!entriesByEmployee[entry.employeeid]) {
-          entriesByEmployee[entry.employeeid] = [];
-        }
-        entriesByEmployee[entry.employeeid].push(entry);
-      });
+      if (workEntries) {
+        workEntries.forEach(entry => {
+          if (!entriesByEmployee[entry.employeeid]) {
+            entriesByEmployee[entry.employeeid] = [];
+          }
+          entriesByEmployee[entry.employeeid].push(entry);
+        });
+      }
 
       // Calculate payroll for each employee
       const payrollResults: EmployeePayroll[] = [];
