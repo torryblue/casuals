@@ -3,17 +3,20 @@ import { useNavigate, useParams } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { useSchedules } from "@/contexts/ScheduleContext";
 import { useEmployees } from "@/contexts/EmployeeContext";
-import { ArrowLeft, Check, Plus, Trash, AlertCircle } from "lucide-react";
+import { ArrowLeft, Check, Plus, Trash, AlertCircle, Search, X } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 const EditSchedulePage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { getScheduleById, updateSchedule, isLoading, isEmployeeAssignedForDate } = useSchedules();
+  const { getScheduleById, updateSchedule, isLoading, isEmployeeAssignedForDate, getAssignedEmployeesForDate } = useSchedules();
   const { employees } = useEmployees();
   
   const [scheduleItems, setScheduleItems] = useState<any[]>([]);
   const [scheduleDate, setScheduleDate] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [alreadyAssignedEmployees, setAlreadyAssignedEmployees] = useState<string[]>([]);
   
   useEffect(() => {
     if (id) {
@@ -21,12 +24,16 @@ const EditSchedulePage = () => {
       if (schedule) {
         setScheduleDate(schedule.date);
         setScheduleItems(schedule.items);
+        
+        // Get employees assigned for this date
+        const assignedEmployees = getAssignedEmployeesForDate(schedule.date);
+        setAlreadyAssignedEmployees(assignedEmployees);
       } else {
         toast.error("Schedule not found");
         navigate('/master/schedules');
       }
     }
-  }, [id, getScheduleById, navigate]);
+  }, [id, getScheduleById, navigate, getAssignedEmployeesForDate]);
   
   const handleTaskChange = (index: number, value: string) => {
     const newItems = [...scheduleItems];
@@ -180,6 +187,35 @@ const EditSchedulePage = () => {
   const getEmployeeName = (id: string) => {
     const employee = employees.find(emp => emp.id === id);
     return employee ? `${employee.name} ${employee.surname}` : 'Unknown';
+  };
+  
+  // Filter employees based on search term and availability
+  const getFilteredEmployees = (index: number) => {
+    return employees.filter(employee => {
+      const searchValue = searchTerm.toLowerCase();
+      const currentItemEmployeeIds = scheduleItems[index].employeeIds || [];
+      
+      // Check if employee matches the search
+      const matchesSearch = 
+        searchTerm === "" || 
+        employee.name?.toLowerCase().includes(searchValue) ||
+        employee.surname?.toLowerCase().includes(searchValue) ||
+        employee.id.toLowerCase().includes(searchValue);
+      
+      // Check if employee is already assigned elsewhere
+      const isAssignedElsewhere = 
+        alreadyAssignedEmployees.includes(employee.id) && 
+        !currentItemEmployeeIds.includes(employee.id) &&
+        scheduleItems.some((item, idx) => 
+          idx !== index && item.employeeIds.includes(employee.id)
+        );
+      
+      return matchesSearch && (!isAssignedElsewhere || currentItemEmployeeIds.includes(employee.id));
+    });
+  };
+  
+  const clearSearch = () => {
+    setSearchTerm("");
   };
   
   return (
@@ -378,37 +414,63 @@ const EditSchedulePage = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Assign Employees <span className="text-red-500">*</span>
                     </label>
+                    <div className="relative mb-2">
+                      <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <Search className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <Input
+                        type="text"
+                        placeholder="Search employees..."
+                        className="pl-10 pr-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                      {searchTerm && (
+                        <button
+                          className="absolute inset-y-0 right-0 flex items-center pr-3"
+                          onClick={clearSearch}
+                        >
+                          <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                        </button>
+                      )}
+                    </div>
                     <div className="border rounded-md p-2 bg-white max-h-40 overflow-y-auto">
                       <div className="space-y-1">
-                        {employees.map(employee => {
-                          // Check if employee is assigned elsewhere for this date
-                          const isEmployeeAssignedElsewhere = 
-                            !item.employeeIds.includes(employee.id) && 
-                            (isEmployeeAssignedForDate(employee.id, scheduleDate) || 
-                             scheduleItems.some((otherItem, otherIndex) => 
-                               index !== otherIndex && otherItem.employeeIds.includes(employee.id)
-                             ));
-                          
-                          return (
-                            <div key={employee.id} className="flex items-center">
-                              <input
-                                type="checkbox"
-                                id={`employee-${index}-${employee.id}`}
-                                checked={item.employeeIds.includes(employee.id)}
-                                onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
-                                className="mr-2"
-                                disabled={isEmployeeAssignedElsewhere}
-                              />
-                              <label 
-                                htmlFor={`employee-${index}-${employee.id}`} 
-                                className={`text-sm ${isEmployeeAssignedElsewhere ? 'text-gray-400' : ''}`}
-                              >
-                                {employee.name} {employee.surname}
-                                {isEmployeeAssignedElsewhere && " (assigned elsewhere)"}
-                              </label>
-                            </div>
-                          );
-                        })}
+                        {getFilteredEmployees(index).length === 0 ? (
+                          <p className="text-sm text-gray-500 py-2 text-center">
+                            {searchTerm ? `No employees found matching "${searchTerm}".` : "All employees are already assigned to tasks for this date."}
+                          </p>
+                        ) : (
+                          getFilteredEmployees(index).map(employee => {
+                            // Check if employee is assigned elsewhere for this date
+                            const isEmployeeAssignedElsewhere = 
+                              !item.employeeIds.includes(employee.id) && 
+                              (isEmployeeAssignedForDate(employee.id, scheduleDate) || 
+                               scheduleItems.some((otherItem, otherIndex) => 
+                                 index !== otherIndex && otherItem.employeeIds.includes(employee.id)
+                               ));
+                            
+                            return (
+                              <div key={employee.id} className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  id={`employee-${index}-${employee.id}`}
+                                  checked={item.employeeIds.includes(employee.id)}
+                                  onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
+                                  className="mr-2"
+                                  disabled={isEmployeeAssignedElsewhere}
+                                />
+                                <label 
+                                  htmlFor={`employee-${index}-${employee.id}`} 
+                                  className={`text-sm ${isEmployeeAssignedElsewhere ? 'text-gray-400' : ''}`}
+                                >
+                                  {employee.name} {employee.surname}
+                                  {isEmployeeAssignedElsewhere && " (assigned elsewhere)"}
+                                </label>
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     </div>
                   </div>

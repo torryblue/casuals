@@ -1,13 +1,14 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEmployees } from "@/contexts/EmployeeContext";
+import { useSchedules } from "@/contexts/ScheduleContext";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 
 interface StrippingScheduleFormProps {
   employeeIds: string[];
-  targetMass: number; // Add targetMass property
+  targetMass: number;
   numberOfScales: number;
+  scheduleDate?: string;
   onChange: (data: { employeeIds: string[], targetMass: number, numberOfScales: number }) => void;
 }
 
@@ -15,10 +16,21 @@ const StrippingScheduleForm = ({
   employeeIds, 
   targetMass,
   numberOfScales,
+  scheduleDate,
   onChange 
 }: StrippingScheduleFormProps) => {
   const { employees } = useEmployees();
+  const { getAssignedEmployeesForDate } = useSchedules();
   const [searchTerm, setSearchTerm] = useState("");
+  const [alreadyAssignedEmployees, setAlreadyAssignedEmployees] = useState<string[]>([]);
+  
+  // Get the already assigned employees for this date
+  useEffect(() => {
+    if (scheduleDate) {
+      const assignedEmployees = getAssignedEmployeesForDate(scheduleDate);
+      setAlreadyAssignedEmployees(assignedEmployees);
+    }
+  }, [scheduleDate, getAssignedEmployeesForDate]);
 
   const handleEmployeeSelection = (employeeId: string, isSelected: boolean) => {
     let newEmployeeIds = [...employeeIds];
@@ -63,16 +75,14 @@ const StrippingScheduleForm = ({
   const filteredEmployees = employees.filter(employee => {
     const searchValue = searchTerm.toLowerCase();
     return (
-      employee.name?.toLowerCase().includes(searchValue) ||
+      (employee.name?.toLowerCase().includes(searchValue) ||
       employee.surname?.toLowerCase().includes(searchValue) ||
-      employee.id.toLowerCase().includes(searchValue)
+      employee.id.toLowerCase().includes(searchValue)) &&
+      // Do not show employees already assigned to other tasks for this date
+      // but keep employees that are already assigned to this current task
+      (!alreadyAssignedEmployees.includes(employee.id) || employeeIds.includes(employee.id))
     );
   });
-
-  // Filter out already selected employees for other tasks
-  const availableEmployees = filteredEmployees.filter(
-    employee => !employeeIds.includes(employee.id)
-  );
 
   return (
     <div className="space-y-4">
@@ -136,23 +146,31 @@ const StrippingScheduleForm = ({
                 <p className="text-sm text-gray-500 py-2 text-center">
                   No employees found matching "{searchTerm}".
                 </p>
+              ) : filteredEmployees.length === 0 ? (
+                <p className="text-sm text-gray-500 py-2 text-center">
+                  All employees are already assigned to tasks for this date.
+                </p>
               ) : (
                 filteredEmployees.map((employee) => {
                   const isSelected = employeeIds.includes(employee.id);
+                  const isAssignedElsewhere = alreadyAssignedEmployees.includes(employee.id) && !employeeIds.includes(employee.id);
+                  
                   return (
                     <div key={employee.id} className="flex items-center">
                       <input
                         type="checkbox"
                         id={`employee-stripping-${employee.id}`}
                         checked={isSelected}
+                        disabled={isAssignedElsewhere}
                         onChange={(e) => handleEmployeeSelection(employee.id, e.target.checked)}
                         className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                       />
                       <label
                         htmlFor={`employee-stripping-${employee.id}`}
-                        className="ml-2 block text-sm text-gray-700"
+                        className={`ml-2 block text-sm ${isAssignedElsewhere ? 'text-gray-400' : 'text-gray-700'}`}
                       >
                         {employee.name} {employee.surname} ({employee.id})
+                        {isAssignedElsewhere && " (assigned elsewhere)"}
                       </label>
                     </div>
                   );

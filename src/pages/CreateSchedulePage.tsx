@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, X, Plus } from "lucide-react";
+import { ArrowLeft, Save, X, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useSchedules } from "@/contexts/ScheduleContext";
@@ -9,6 +9,7 @@ import StrippingScheduleForm from "@/components/StrippingScheduleForm";
 import MachineScheduleForm from "@/components/MachineScheduleForm";
 import GradingScheduleForm from "@/components/GradingScheduleForm";
 import AppLayout from "@/components/AppLayout";
+import { Input } from "@/components/ui/input";
 
 const PREDEFINED_TASKS = [
   "Stripping",
@@ -25,7 +26,8 @@ const CreateSchedulePage = () => {
     addSchedule, 
     isEmployeeAssignedForDate, 
     isLoading: isScheduleLoading, 
-    schedules 
+    schedules,
+    getAssignedEmployeesForDate
   } = useSchedules();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -45,6 +47,8 @@ const CreateSchedulePage = () => {
     }
   ]);
   const [tasksScheduledForDay, setTasksScheduledForDay] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredEmployees, setFilteredEmployees] = useState(employees);
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -76,6 +80,17 @@ const CreateSchedulePage = () => {
       });
     });
   }, [scheduleDate, schedules]);
+
+  useEffect(() => {
+    // Update filtered employees based on search term
+    const searchValue = searchTerm.toLowerCase();
+    const filtered = employees.filter(employee => (
+      employee.name?.toLowerCase().includes(searchValue) ||
+      employee.surname?.toLowerCase().includes(searchValue) ||
+      employee.id.toLowerCase().includes(searchValue)
+    ));
+    setFilteredEmployees(filtered);
+  }, [searchTerm, employees]);
 
   const handleAddItem = () => {
     // Find first non-scheduled task
@@ -326,6 +341,7 @@ const CreateSchedulePage = () => {
                             employeeIds={item.employeeIds}
                             targetMass={item.targetMass}
                             numberOfScales={item.numberOfScales}
+                            scheduleDate={scheduleDate}
                             onChange={(data) => handleStrippingDataChange(index, data)}
                           />
                         </div>
@@ -334,6 +350,7 @@ const CreateSchedulePage = () => {
                           <BailingLaminaScheduleForm 
                             employeeIds={item.employeeIds}
                             targetMass={item.targetMass}
+                            scheduleDate={scheduleDate}
                             onChange={(data) => handleBailingLaminaDataChange(index, data)}
                           />
                         </div>
@@ -342,7 +359,16 @@ const CreateSchedulePage = () => {
                           <MachineScheduleForm 
                             employeeIds={item.employeeIds}
                             targetMass={item.targetMass}
+                            scheduleDate={scheduleDate}
                             onChange={(data) => handleMachineDataChange(index, data)}
+                          />
+                        </div>
+                      ) : item.task === "Grading" ? (
+                        <div className="mt-4">
+                          <GradingScheduleForm
+                            employeeIds={item.employeeIds}
+                            scheduleDate={scheduleDate}
+                            onChange={(data) => handleGradingDataChange(index, data)}
                           />
                         </div>
                       ) : (
@@ -350,26 +376,57 @@ const CreateSchedulePage = () => {
                           <label className="block text-xs font-medium text-gray-600">
                             Assign Employees
                           </label>
+                          <div className="relative mb-2">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                              <Search className="h-4 w-4 text-gray-400" />
+                            </div>
+                            <Input
+                              type="text"
+                              placeholder="Search employees..."
+                              className="pl-10 pr-10"
+                              value={searchTerm || ""}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                            {searchTerm && (
+                              <button
+                                className="absolute inset-y-0 right-0 flex items-center pr-3"
+                                onClick={() => setSearchTerm("")}
+                              >
+                                <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                              </button>
+                            )}
+                          </div>
                           <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
                             {employees.length > 0 ? (
                               <div className="space-y-2">
-                                {employees.map((employee) => (
-                                  <div key={employee.id} className="flex items-center">
-                                    <input
-                                      type="checkbox"
-                                      id={`employee-${index}-${employee.id}`}
-                                      checked={(item.employeeIds as string[]).includes(employee.id)}
-                                      onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
-                                      className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                    />
-                                    <label
-                                      htmlFor={`employee-${index}-${employee.id}`}
-                                      className="ml-2 block text-sm text-gray-700"
-                                    >
-                                      {employee.name} {employee.surname} ({employee.id})
-                                    </label>
-                                  </div>
-                                ))}
+                                {filteredEmployees.length === 0 ? (
+                                  <p className="text-sm text-gray-500 py-2 text-center">
+                                    {searchTerm ? `No employees found matching "${searchTerm}".` : "All employees are already assigned to tasks for this date."}
+                                  </p>
+                                ) : (
+                                  filteredEmployees.map((employee) => {
+                                    const isAssigned = isEmployeeAssignedForDate(employee.id, scheduleDate) && !item.employeeIds.includes(employee.id);
+                                    return (
+                                      <div key={employee.id} className="flex items-center">
+                                        <input
+                                          type="checkbox"
+                                          id={`employee-${index}-${employee.id}`}
+                                          checked={item.employeeIds.includes(employee.id)}
+                                          disabled={isAssigned}
+                                          onChange={(e) => handleEmployeeSelection(index, employee.id, e.target.checked)}
+                                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                        />
+                                        <label
+                                          htmlFor={`employee-${index}-${employee.id}`}
+                                          className={`ml-2 block text-sm ${isAssigned ? 'text-gray-400' : 'text-gray-700'}`}
+                                        >
+                                          {employee.name} {employee.surname} ({employee.id})
+                                          {isAssigned && " (assigned elsewhere)"}
+                                        </label>
+                                      </div>
+                                    );
+                                  })
+                                )}
                               </div>
                             ) : (
                               <p className="text-sm text-gray-500 py-2 text-center">
