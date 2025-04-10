@@ -160,7 +160,7 @@ const PayrollPage = () => {
       }, {});
 
       // Group work entries by employee
-      const entriesByEmployee = {};
+      const entriesByEmployee: Record<string, any[]> = {};
       
       workEntries.forEach(entry => {
         if (!entriesByEmployee[entry.employeeid]) {
@@ -195,7 +195,6 @@ const PayrollPage = () => {
         const bailingLaminaEntries = entries.filter(e => e.duty_name === "Bailing Lamina");
         const machineEntries = entries.filter(e => e.duty_name === "Machine");
 
-        // Calculate pay for each task type
         if (strippingEntries.length > 0) {
           let totalInscaleMass = 0;
           
@@ -328,7 +327,7 @@ const PayrollPage = () => {
           let totalEmployeeCount = 0;
           
           processedScheduleItems.forEach(itemId => {
-            const item = scheduleItemsMap[itemId];
+            const item = scheduleItemsMap[itemId as string];
             if (item && item.task === "Machine") {
               const employeeCount = Array.isArray(item.employeeIds) ? item.employeeIds.length : 0;
               if (employeeCount > 0) {
@@ -370,8 +369,8 @@ const PayrollPage = () => {
 
         payrollResults.push({
           id: employeeId,
-          name: employee.name,
-          surname: employee.surname,
+          name: employee.name || '',
+          surname: employee.surname || '',
           strippingPay,
           ticketBasedPay,
           bailingSticksPay,
@@ -459,7 +458,7 @@ const PayrollPage = () => {
       <div className="container mx-auto py-6 px-4">
         <div className="flex items-center gap-3 mb-6">
           <button 
-            onClick={()={() => navigate(-1)}
+            onClick={() => navigate(-1)}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="h-5 w-5 text-gray-500" />
