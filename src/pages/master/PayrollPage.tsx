@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { ArrowLeft, Download, Calendar, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -155,7 +154,7 @@ const PayrollPage = () => {
       }
 
       // Map for quick lookup of schedule items
-      const scheduleItemsMap = scheduleItems.reduce((acc, item) => {
+      const scheduleItemsMap: Record<string, any> = scheduleItems.reduce((acc: Record<string, any>, item: any) => {
         acc[item.id] = item;
         return acc;
       }, {});
@@ -460,7 +459,7 @@ const PayrollPage = () => {
       <div className="container mx-auto py-6 px-4">
         <div className="flex items-center gap-3 mb-6">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={()={() => navigate(-1)}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
             <ArrowLeft className="h-5 w-5 text-gray-500" />

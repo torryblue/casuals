@@ -33,6 +33,20 @@ export type Schedule = {
   createdAt: Date;
 };
 
+// Add the Carton type definition
+export type Carton = {
+  id: number;
+  grade: string;
+  mass: number;
+};
+
+// Add the OutputEntry type definition
+export type OutputEntry = {
+  id: string;
+  type: 'output' | 'sticks' | 'f8' | 'dust';
+  mass: number;
+};
+
 export type WorkEntry = {
   entryType: string;
   id: string;
@@ -56,10 +70,7 @@ export type WorkEntry = {
   f8Mass?: number;
   dustMass?: number;
   massInputs?: number[];
-  cartons?: {
-    number: number;
-    mass: number;
-  }[];
+  cartons?: Carton[];
 };
 
 type ScheduleContextType = {
