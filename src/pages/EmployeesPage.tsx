@@ -5,12 +5,20 @@ import AppLayout from "@/components/AppLayout";
 import { useEmployees } from "@/contexts/EmployeeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Plus, User } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const EmployeesPage = () => {
-  const { employees } = useEmployees();
+  const { employees, addEmployee } = useEmployees();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newEmployee, setNewEmployee] = useState({ name: "", surname: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const isAdmin = user?.role === 'admin';
   
@@ -20,6 +28,41 @@ const EmployeesPage = () => {
     (employee.surname?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
     (employee.idno?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
   );
+
+  const handleAddEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newEmployee.name || !newEmployee.surname) {
+      toast.error("Please provide both name and surname");
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Create a basic employee with just name and surname
+      await addEmployee({
+        name: newEmployee.name,
+        surname: newEmployee.surname,
+        idno: null,
+        contact: null,
+        address: null,
+        gender: null,
+        nextofkinname: null,
+        nextofkincontact: null
+      });
+      
+      // Reset form and close dialog
+      setNewEmployee({ name: "", surname: "" });
+      setIsAddDialogOpen(false);
+      toast.success("Employee added successfully. Admin can update additional details later.");
+    } catch (error) {
+      console.error("Error adding employee:", error);
+      toast.error("Failed to add employee. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <AppLayout>
@@ -44,16 +87,28 @@ const EmployeesPage = () => {
               />
             </div>
             
-            {/* Add employee button */}
-            {isAdmin && (
-              <button
-                onClick={() => navigate('/employees/create')}
-                className="btn-primary flex items-center"
+            {/* Add employee buttons - now both admin and regular users can add employees */}
+            <div className="flex gap-2">
+              {/* Quick add button for regular users */}
+              <Button
+                onClick={() => setIsAddDialogOpen(true)}
+                className="btn-secondary flex items-center"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Employee
-              </button>
-            )}
+                Quick Add
+              </Button>
+              
+              {/* Full add button for admins only */}
+              {isAdmin && (
+                <Button
+                  onClick={() => navigate('/employees/create')}
+                  className="btn-primary flex items-center"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Employee
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Employee listing */}
@@ -95,6 +150,54 @@ const EmployeesPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Add Employee Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Quick Add Employee</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddEmployee}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">First Name</Label>
+                <Input 
+                  id="name" 
+                  value={newEmployee.name}
+                  onChange={(e) => setNewEmployee({...newEmployee, name: e.target.value})}
+                  placeholder="Enter first name"
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="surname">Last Name</Label>
+                <Input 
+                  id="surname" 
+                  value={newEmployee.surname}
+                  onChange={(e) => setNewEmployee({...newEmployee, surname: e.target.value})}
+                  placeholder="Enter last name"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={() => setIsAddDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Adding..." : "Add Employee"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
