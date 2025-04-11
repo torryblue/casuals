@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "../contexts/AuthContext";
 
 interface TicketWorkEntryFormProps {
   scheduleId: string;
@@ -23,6 +24,7 @@ const TicketWorkEntryForm = ({
   existingEntries
 }: TicketWorkEntryFormProps) => {
   const { addWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
+  const { user } = useAuth();
   const [dutyName, setDutyName] = useState<string>('');
   const [remarks, setRemarks] = useState<string>('');
   const [savedProgress, setSavedProgress] = useState<any>(null);
@@ -30,6 +32,7 @@ const TicketWorkEntryForm = ({
 
   // Check if the employee is locked for this task
   const isLocked = isEmployeeEntryLocked(scheduleId, scheduleItemId, employeeId);
+  const isAdmin = user?.role === 'admin';
 
   // Load saved progress from localStorage on component mount
   useEffect(() => {
@@ -84,7 +87,7 @@ const TicketWorkEntryForm = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isLocked) {
+    if (isLocked && !isAdmin) {
       toast.error('This worker has been locked for this task');
       return;
     }
@@ -93,8 +96,8 @@ const TicketWorkEntryForm = ({
       scheduleId,
       scheduleItemId,
       employeeId,
-      quantity: 1, // Default quantity for ticket-based work
-      remarks,
+      quantity: 0, // Allow zero as valid quantity
+      remarks: `Duty: ${dutyName}\n\nRemarks: ${remarks}`,
       entryType: ''
     });
     
@@ -110,7 +113,7 @@ const TicketWorkEntryForm = ({
   };
 
   const handleLock = () => {
-    if (isLocked) {
+    if (isLocked && !isAdmin) {
       return;
     }
     
@@ -119,7 +122,7 @@ const TicketWorkEntryForm = ({
       scheduleId,
       scheduleItemId,
       employeeId,
-      quantity: 1, // Default quantity for ticket-based work
+      quantity: 0, // Allow zero as valid quantity
       remarks: `Duty: ${dutyName}\n\nRemarks: ${remarks}`,
       entryType: ''
     });
@@ -144,7 +147,7 @@ const TicketWorkEntryForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Progress management buttons */}
-      {!isLocked && (
+      {(!isLocked || isAdmin) && (
         <div className="flex justify-end space-x-2">
           <Button
             type="button"
@@ -180,6 +183,14 @@ const TicketWorkEntryForm = ({
         </div>
       )}
       
+      {isLocked && isAdmin && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md mb-4">
+          <p className="text-amber-800 font-medium text-sm">
+            You are editing a locked entry as an admin. Any changes will be recorded.
+          </p>
+        </div>
+      )}
+      
       {hasSavedProgress && (
         <div className="bg-blue-50 p-2 rounded-md text-sm text-blue-800 dark:bg-blue-900 dark:text-blue-100">
           Last saved: {new Date(savedProgress.savedAt).toLocaleString()}
@@ -197,7 +208,7 @@ const TicketWorkEntryForm = ({
             placeholder="Specify the work being done under ticket"
             value={dutyName}
             onChange={(e) => setDutyName(e.target.value)}
-            disabled={isLocked}
+            disabled={isLocked && !isAdmin}
             required
             className="pr-10"
           />
@@ -214,13 +225,13 @@ const TicketWorkEntryForm = ({
           placeholder="Add any comments or notes about this work"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
-          disabled={isLocked}
+          disabled={isLocked && !isAdmin}
           rows={4}
           className="resize-none"
         />
       </div>
 
-      {!isLocked && (
+      {(!isLocked || isAdmin) && (
         <div className="flex justify-end gap-3">
           <Button
             type="button"
@@ -236,14 +247,16 @@ const TicketWorkEntryForm = ({
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>
-          <Button
-            type="button"
-            onClick={handleLock}
-            variant="destructive"
-          >
-            <Lock className="h-4 w-4 mr-2" />
-            Save & Lock
-          </Button>
+          {!isLocked && (
+            <Button
+              type="button"
+              onClick={handleLock}
+              variant="destructive"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Save & Lock
+            </Button>
+          )}
         </div>
       )}
 

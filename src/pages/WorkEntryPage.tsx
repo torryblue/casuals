@@ -12,15 +12,12 @@ import BailingStickWorkEntryForm from "../components/BailingStickWorkEntryForm";
 import TicketWorkEntryForm from "../components/TicketWorkEntryForm";
 import { toast } from "sonner";
 
-// ... keep existing code (const WorkEntryPage, navigate, useSchedules, etc.)
-
 const WorkEntryPage = () => {
   const navigate = useNavigate();
   const { schedules, workEntries, getWorkEntriesForEmployee, addWorkEntry, updateWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
   const { employees } = useEmployees();
   const { user } = useAuth();
   
-  // ... keep existing code (state variables, filter logic)
   const [selectedScheduleId, setSelectedScheduleId] = useState<string>("");
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<ScheduleItem | null>(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
@@ -51,15 +48,16 @@ const WorkEntryPage = () => {
     ? employeeWorkEntries.filter(entry => entry.scheduleItemId === selectedScheduleItem.id)
     : [];
 
+  // Check if the employee is locked for this task
   const isLocked = selectedScheduleId && selectedScheduleItem && selectedEmployeeId
     ? isEmployeeEntryLocked(selectedScheduleId, selectedScheduleItem.id, selectedEmployeeId)
     : false;
 
-  // ... keep existing code (useEffect, handlers)
   useEffect(() => {
     if (selectedScheduleItem && selectedEmployeeId) {
       const isTicketTask = selectedScheduleItem.task.toLowerCase().includes("ticket");
-      const hasQuantity = isTicketTask || (quantity !== "" && quantity >= 0);
+      // Modified to allow zero (0) as a valid quantity
+      const hasQuantity = isTicketTask || (quantity !== "" && Number(quantity) >= 0);
       const hasRemarks = remarks.trim() !== "";
       setFormComplete(hasQuantity && hasRemarks);
     } else {
@@ -110,6 +108,7 @@ const WorkEntryPage = () => {
       return;
     }
     
+    // Modified to ensure zero is a valid quantity
     const finalQuantity = quantity === "" ? 0 : Number(quantity);
 
     if (editMode && editEntryId) {
@@ -245,6 +244,15 @@ const WorkEntryPage = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+            
+            {/* Display lock status for the current selected task/employee */}
+            {isLocked && selectedScheduleItem && (
+              <div className="p-3 mb-4 bg-amber-50 border border-amber-200 rounded-md">
+                <p className="text-amber-800 font-medium">
+                  This worker's entries for this task have been locked. {user?.role === 'admin' && "As an admin, you can unlock them on the Unlock Entries page."}
+                </p>
               </div>
             )}
             

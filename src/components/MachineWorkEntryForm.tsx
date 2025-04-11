@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import MultiOutputEntryForm from '@/components/MultiOutputEntryForm';
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MachineWorkEntryFormProps {
   scheduleId: string;
@@ -25,6 +26,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
   existingEntries
 }: MachineWorkEntryFormProps) => {
   const { addWorkEntry, isEmployeeEntryLocked, lockEmployeeEntry } = useSchedules();
+  const { user } = useAuth();
   const [massInputs, setMassInputs] = useState<number[]>([0]);
   const [outputEntries, setOutputEntries] = useState<OutputEntry[]>([]);
   const [remarks, setRemarks] = useState<string>('');
@@ -33,6 +35,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
 
   // Check if the employee is locked for this task
   const isLocked = isEmployeeEntryLocked(scheduleId, scheduleItemId, employeeId);
+  const isAdmin = user?.role === 'admin';
 
   // Load saved progress from localStorage on component mount
   useEffect(() => {
@@ -68,14 +71,15 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
     setMassInputs(newInputs);
   };
 
+  // Allow for inputs to be 0
   const calculateTotalInputMass = (): number => {
-    return massInputs.reduce((sum, value) => sum + (value || 0), 0);
+    return massInputs.reduce((sum, value) => sum + (Number(value) || 0), 0);
   };
 
   const calculateTotalByType = (type: 'output' | 'sticks' | 'f8' | 'dust'): number => {
     return outputEntries
       .filter(entry => entry.type === type)
-      .reduce((sum, entry) => sum + (entry.mass || 0), 0);
+      .reduce((sum, entry) => sum + (Number(entry.mass) || 0), 0);
   };
 
   // Save progress to localStorage
@@ -117,7 +121,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isLocked) {
+    if (isLocked && !isAdmin) {
       toast.error('This worker has been locked for this task');
       return;
     }
@@ -149,7 +153,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
   };
 
   const handleLock = () => {
-    if (isLocked) {
+    if (isLocked && !isAdmin) {
       return;
     }
     
@@ -195,8 +199,16 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
         </p>
       </div>
       
+      {isLocked && isAdmin && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-md mb-4">
+          <p className="text-amber-800 font-medium text-sm">
+            You are editing a locked entry as an admin. Any changes will be recorded.
+          </p>
+        </div>
+      )}
+      
       {/* Progress management buttons */}
-      {!isLocked && (
+      {(!isLocked || isAdmin) && (
         <div className="flex justify-end space-x-2">
           <Button
             type="button"
@@ -243,7 +255,7 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-medium">Mass Inputs</h4>
           
-          {!isLocked && (
+          {(!isLocked || isAdmin) && (
             <Button
               type="button"
               variant="outline"
@@ -268,13 +280,13 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
                 min="0"
                 step="0.01"
                 placeholder="0.00"
-                value={value || ''}
+                value={value}
                 onChange={(e) => handleMassInputChange(index, parseFloat(e.target.value) || 0)}
-                disabled={isLocked}
+                disabled={isLocked && !isAdmin}
                 required={index === 0}
               />
             </div>
-            {!isLocked && massInputs.length > 1 && (
+            {(!isLocked || isAdmin) && massInputs.length > 1 && (
               <Button
                 type="button"
                 variant="ghost"
@@ -297,9 +309,9 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
         )}
       </div>
 
-      {/* Multi output entries */}
+      {/* Multi output entries - pass the isAdmin flag */}
       <MultiOutputEntryForm 
-        isLocked={isLocked} 
+        isLocked={isLocked && !isAdmin} 
         onChange={setOutputEntries} 
         initialEntries={outputEntries}
       />
@@ -312,12 +324,12 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
           placeholder="Any additional comments"
           value={remarks}
           onChange={(e) => setRemarks(e.target.value)}
-          disabled={isLocked}
+          disabled={isLocked && !isAdmin}
           rows={2}
         />
       </div>
 
-      {!isLocked && (
+      {(!isLocked || isAdmin) && (
         <div className="flex justify-end gap-3">
           <Button
             type="button"
@@ -335,15 +347,17 @@ const MachineWorkEntryForm: React.FC<MachineWorkEntryFormProps> = ({
             <Save className="h-4 w-4 mr-2" />
             Save
           </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleLock}
-            className="flex items-center"
-          >
-            <Lock className="h-4 w-4 mr-2" />
-            Save & Lock
-          </Button>
+          {!isLocked && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleLock}
+              className="flex items-center"
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Save & Lock
+            </Button>
+          )}
         </div>
       )}
 
